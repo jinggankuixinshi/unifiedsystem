@@ -1,6 +1,7 @@
 package com.unified.logistics.service;
 
 import com.baomidou.dynamic.datasource.annotation.DS;
+import com.baomidou.dynamic.datasource.annotation.DSTransactional;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -31,6 +32,7 @@ import java.util.List;
  */
 @Slf4j
 @Service
+@DS("logistics")
 @RequiredArgsConstructor
 public class TransferService extends ServiceImpl<LogTransferMapper, LogTransfer> {
 
@@ -38,11 +40,15 @@ public class TransferService extends ServiceImpl<LogTransferMapper, LogTransfer>
     private final LogTransferSignMapper signMapper;
     private final WorkflowEngine workflowEngine;
 
-    @Transactional(rollbackFor = Exception.class)
+    @DSTransactional(rollbackFor = Exception.class)
     public LogTransfer createTransfer(LogTransfer transfer, List<LogTransferItem> items) {
         transfer.setTransferNo(SequenceGenerator.generate("TR"));
         transfer.setApprovalStatus(0);
 
+        for (LogTransferItem item : items) {
+            if (item.getUnitValue() == null) item.setUnitValue(BigDecimal.ZERO);
+            if (item.getQuantity() == null) item.setQuantity(BigDecimal.ZERO);
+        }
         BigDecimal totalValue = items.stream()
                 .map(i -> i.getUnitValue().multiply(i.getQuantity()))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
@@ -50,7 +56,6 @@ public class TransferService extends ServiceImpl<LogTransferMapper, LogTransfer>
         save(transfer);
 
         for (LogTransferItem item : items) {
-            if (item.getUnitValue() == null) item.setUnitValue(BigDecimal.ZERO);
             item.setTransferId(transfer.getId());
             itemMapper.insert(item);
         }

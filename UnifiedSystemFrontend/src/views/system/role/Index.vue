@@ -139,9 +139,7 @@ async function saveOrder() {
   try {
     await request.put('/system/roles/sort', payload)
     message.success('排序已保存')
-  } catch {
-    message.error('排序保存失败')
-  } finally {
+  } catch { } finally {
     fetchData()
   }
 }
@@ -152,7 +150,7 @@ async function fetchData() {
     const res = await request.get('/system/roles', { params: { pageNum: current.value, pageSize: pageSize.value, keyword: keyword.value } }) as any
     dataSource.value = res.data?.records || []
     total.value = res.data?.total || 0
-  } catch { message.error('加载失败') } finally { loading.value = false }
+  } catch { } finally { loading.value = false }
 }
 
 function handleSearch() { current.value = 1; fetchData() }
@@ -182,11 +180,11 @@ async function handleSubmit() {
       await request.post('/system/roles', formState); message.success('创建成功')
     }
     modalVisible.value = false; fetchData()
-  } catch { message.error('操作失败') } finally { submitting.value = false }
+  } catch { } finally { submitting.value = false }
 }
 
 async function handleDelete(id: number) {
-  try { await request.delete(`/system/roles/${id}`); message.success('删除成功'); fetchData() } catch { message.error('删除失败') }
+  try { await request.delete(`/system/roles/${id}`); message.success('删除成功'); fetchData() } catch { }
 }
 
 onMounted(async () => {

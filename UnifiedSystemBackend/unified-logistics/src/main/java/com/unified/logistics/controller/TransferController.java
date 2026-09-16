@@ -2,10 +2,12 @@ package com.unified.logistics.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.unified.common.core.Result;
+import com.unified.logistics.dto.TransferCreateDTO;
 import com.unified.logistics.entity.LogTransfer;
 import com.unified.logistics.entity.LogTransferItem;
 import com.unified.logistics.entity.LogTransferSign;
 import com.unified.logistics.service.TransferService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -38,9 +40,8 @@ public class TransferController {
     }
 
     @PostMapping
-    public Result<LogTransfer> create(@RequestBody LogTransfer transfer,
-                                       @RequestParam(required = false) List<LogTransferItem> items) {
-        return Result.ok(transferService.createTransfer(transfer, items != null ? items : List.of()));
+    public Result<LogTransfer> create(@Valid @RequestBody TransferCreateDTO dto) {
+        return Result.ok(transferService.createTransfer(dto.getTransfer(), dto.getItems() != null ? dto.getItems() : List.of()));
     }
 
     @PostMapping("/{id}/sign")

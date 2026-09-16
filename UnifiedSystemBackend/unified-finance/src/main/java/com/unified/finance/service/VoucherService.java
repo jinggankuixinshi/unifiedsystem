@@ -22,18 +22,19 @@ import java.util.List;
 
 @Slf4j
 @Service
+@DS("finance")
 @RequiredArgsConstructor
 public class VoucherService extends ServiceImpl<FinVoucherMapper, FinVoucher> {
 
     private final FinVoucherEntryMapper entryMapper;
 
     @Transactional(rollbackFor = Exception.class)
-    public FinVoucher createVoucher(String summary, List<FinVoucherEntry> entries) {
+    public FinVoucher createVoucher(LocalDate voucherDate, String summary, List<FinVoucherEntry> entries) {
         BigDecimal totalDebit = entries.stream()
-                .map(FinVoucherEntry::getDebitAmount)
+                .map(e -> e.getDebitAmount() == null ? BigDecimal.ZERO : e.getDebitAmount())
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         BigDecimal totalCredit = entries.stream()
-                .map(FinVoucherEntry::getCreditAmount)
+                .map(e -> e.getCreditAmount() == null ? BigDecimal.ZERO : e.getCreditAmount())
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         if (totalDebit.compareTo(totalCredit) != 0) {
@@ -42,7 +43,7 @@ public class VoucherService extends ServiceImpl<FinVoucherMapper, FinVoucher> {
 
         FinVoucher voucher = new FinVoucher();
         voucher.setVoucherNo(SequenceGenerator.generate("VCH"));
-        voucher.setVoucherDate(LocalDate.now());
+        voucher.setVoucherDate(voucherDate != null ? voucherDate : LocalDate.now());
         voucher.setSummary(summary);
         voucher.setCreatorId(UserContext.get().getUserId());
         voucher.setStatus(1);

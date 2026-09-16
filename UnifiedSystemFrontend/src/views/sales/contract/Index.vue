@@ -60,11 +60,11 @@ async function fetchData() {
   loading.value = true
   try {
     const res = await request.get('/sales/contracts', {
-      pageNum: current.value, pageSize: pageSize.value
+      params: { pageNum: current.value, pageSize: pageSize.value }
     }) as any
     dataSource.value = res.data?.records || []
     total.value = res.data?.total || 0
-  } catch { message.error('加载合同列表失败') } finally { loading.value = false }
+  } catch { } finally { loading.value = false }
 }
 
 function handlePageChange(pag: any) { current.value = pag.current; pageSize.value = pag.pageSize; fetchData() }

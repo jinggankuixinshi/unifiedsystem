@@ -129,7 +129,7 @@ async function handleInbound() {
       inboundType: inboundType.value
     }, { params: { items: [{ materialProductId: inboundProductId.value, itemType: 2, quantity: inboundQty.value, batchNo: inboundBatch.value || Date.now().toString(), locationCode: inboundLocation.value || 'A-01' }] }})
     message.success('入库成功'); inboundVisible.value = false; fetchData()
-  } catch { message.error('操作失败') } finally { submitting.value = false }
+  } catch { } finally { submitting.value = false }
 }
 async function handleOutbound() {
   if (!outboundProductId.value || !outboundQty.value) { message.warning('请填写完整信息'); return }
@@ -139,7 +139,7 @@ async function handleOutbound() {
       outboundType: outboundType.value
     }, { params: { items: [{ warehouseId: outboundProductId.value, quantity: outboundQty.value }] }})
     message.success('出库成功'); outboundVisible.value = false; fetchData()
-  } catch { message.error('操作失败') } finally { submittingOut.value = false }
+  } catch { } finally { submittingOut.value = false }
 }
 
 onMounted(() => { fetchData(); fetchProducts() })

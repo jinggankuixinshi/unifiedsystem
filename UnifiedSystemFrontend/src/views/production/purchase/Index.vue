@@ -125,7 +125,7 @@ async function fetchData() {
   loading.value = true
   try {
     const status = activeTab.value === 'all' ? undefined : Number(activeTab.value)
-    const res = await request.get('/production/purchase', { pageNum: current.value, pageSize: pageSize.value, status }) as any
+    const res = await request.get('/production/purchase', { params: { pageNum: current.value, pageSize: pageSize.value, status } }) as any
     dataSource.value = res.data?.records || []
     total.value = res.data?.total || 0
   } catch { } finally { loading.value = false }
@@ -164,7 +164,7 @@ async function handleSubmit() {
     })
     message.success('提交成功')
     modalVisible.value = false; fetchData()
-  } catch { message.error('提交失败') } finally { submitting.value = false }
+  } catch { } finally { submitting.value = false }
 }
 
 onMounted(() => { fetchData(); fetchMaterials() })

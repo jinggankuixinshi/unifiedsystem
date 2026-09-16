@@ -83,7 +83,7 @@ const shippingOptions = ref<Array<{ label: string; value: number }>>([])
 async function fetchData() {
   loading.value = true
   try {
-    const res = await request.get('/logistics/pickings', { pageNum: current.value, pageSize: pageSize.value }) as any
+    const res = await request.get('/logistics/pickings', { params: { pageNum: current.value, pageSize: pageSize.value } }) as any
     dataSource.value = res.data?.records || []
     total.value = res.data?.total || 0
   } catch { } finally { loading.value = false }
@@ -91,7 +91,7 @@ async function fetchData() {
 
 async function fetchShippings() {
   try {
-    const res = await request.get('/logistics/shippings', { pageNum: 1, pageSize: 200 }) as any
+    const res = await request.get('/logistics/shippings', { params: { pageNum: 1, pageSize: 200 } }) as any
     const list = res.data?.records || []
     shippingOptions.value = list.map((s: any) => ({ label: `${s.shippingNo || s.id}`, value: s.id }))
   } catch { }

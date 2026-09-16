@@ -10,15 +10,25 @@ const service = axios.create({
 
 const pendingMap = new Map<string, AbortController>()
 
+function buildKey(config: any): string {
+  const params = config.params ? JSON.stringify(config.params) : ''
+  const data = config.data && typeof config.data !== 'string'
+    ? JSON.stringify(config.data)
+    : (config.data || '')
+  return `${config.method}_${config.url}_${params}_${data}`
+}
+
 service.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token')
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
-    const key = `${config.url}_${config.method}_${JSON.stringify(config.params || {})}`
+    const key = buildKey(config)
+    ;(config as any).customKey = key
     if (pendingMap.has(key)) {
       pendingMap.get(key)?.abort()
+      pendingMap.delete(key)
     }
     const controller = new AbortController()
     config.signal = controller.signal
@@ -30,8 +40,8 @@ service.interceptors.request.use(
 
 service.interceptors.response.use(
   (response: AxiosResponse) => {
-    const key = `${response.config.url}_${response.config.method}_${JSON.stringify(response.config.params || {})}`
-    pendingMap.delete(key)
+    const key = (response.config as any).customKey
+    if (key) pendingMap.delete(key)
     const data = response.data
     if (data.code !== 200) {
       const errMsg = data.message || data.msg
@@ -49,6 +59,8 @@ service.interceptors.response.use(
     if (axios.isCancel(error)) {
       return Promise.reject({ code: -1, message: '请求已取消' })
     }
+    const key = (error.config as any)?.customKey
+    if (key) pendingMap.delete(key)
     if (error.response?.status === 401) {
       localStorage.removeItem('token')
       window.location.hash = '#/login'

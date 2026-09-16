@@ -73,7 +73,7 @@ async function fetchData() {
     const res: any = await getAuditLogs({ pageNum: current.value, pageSize: pageSize.value, keyword: keyword.value })
     dataSource.value = (res.data?.records || []).map((r: any) => ({ ...r, createTime: formatDateTime(r.createTime) }))
     total.value = res.data?.total || 0
-  } catch { message.error('加载失败') } finally { loading.value = false }
+  } catch { } finally { loading.value = false }
 }
 
 function handleSearch() { current.value = 1; fetchData() }

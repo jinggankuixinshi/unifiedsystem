@@ -85,8 +85,7 @@ async function handleLogin() {
     message.success('登录成功')
     const redirect = (route.query.redirect as string) || '/dashboard'
     router.push(redirect)
-  } catch (err: any) {
-    message.error(err?.message || '登录失败')
+  } catch {
   } finally {
     submitting.value = false
   }

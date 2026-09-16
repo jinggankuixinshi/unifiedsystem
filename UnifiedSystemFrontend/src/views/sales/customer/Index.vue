@@ -120,11 +120,11 @@ async function fetchData() {
   loading.value = true
   try {
     const res = await request.get('/sales/customers', {
-      pageNum: current.value, pageSize: pageSize.value, keyword: keyword.value
+      params: { pageNum: current.value, pageSize: pageSize.value, keyword: keyword.value }
     }) as any
     dataSource.value = res.data?.records || []
     total.value = res.data?.total || 0
-  } catch { message.error('加载客户列表失败') } finally { loading.value = false }
+  } catch { } finally { loading.value = false }
 }
 
 function handleSearch() { current.value = 1; fetchData() }
@@ -158,7 +158,7 @@ async function handleSubmit() {
     }
     modalVisible.value = false
     fetchData()
-  } catch { message.error('操作失败') } finally { submitting.value = false }
+  } catch { } finally { submitting.value = false }
 }
 
 async function toggleStatus(id: number, status: string) {
@@ -166,7 +166,7 @@ async function toggleStatus(id: number, status: string) {
     await request.put(`/sales/customers/${id}`, { status })
     message.success('操作成功')
     fetchData()
-  } catch { message.error('操作失败') }
+  } catch { }
 }
 
 onMounted(() => { fetchData() })

@@ -125,16 +125,16 @@ async function fetchData() {
   loading.value = true
   try {
     const res = await request.get('/finance/salaries', {
-      pageNum: current.value, pageSize: pageSize.value
+      params: { pageNum: current.value, pageSize: pageSize.value }
     }) as any
     dataSource.value = res.data?.records || []
     total.value = res.data?.total || 0
-  } catch { message.error('加载工资单失败') } finally { loading.value = false }
+  } catch { } finally { loading.value = false }
 }
 
 async function fetchUsers() {
   try {
-    const res = await request.get('/system/users', { pageNum: 1, pageSize: 200 }) as any
+    const res = await request.get('/system/users', { params: { pageNum: 1, pageSize: 200 } }) as any
     const list = res.data?.records || []
     userOptions.value = list.map((u: any) => ({ label: u.realName || u.username, value: u.id }))
   } catch { }
@@ -168,7 +168,7 @@ async function handleSubmit() {
     message.success('创建成功')
     modalVisible.value = false
     fetchData()
-  } catch { message.error('操作失败') } finally { submitting.value = false }
+  } catch { } finally { submitting.value = false }
 }
 
 onMounted(() => { fetchData(); fetchUsers() })

@@ -136,7 +136,7 @@ async function fetchData() {
   loading.value = true
   try {
     const status = activeTab.value === 'all' ? undefined : Number(activeTab.value)
-    const res = await request.get('/logistics/transfers', { pageNum: current.value, pageSize: pageSize.value, status }) as any
+    const res = await request.get('/logistics/transfers', { params: { pageNum: current.value, pageSize: pageSize.value, status } }) as any
     dataSource.value = res.data?.records || []
     total.value = res.data?.total || 0
   } catch { } finally { loading.value = false }
@@ -144,7 +144,7 @@ async function fetchData() {
 
 async function fetchProducts() {
   try {
-    const res = await request.get('/production/products', { pageNum: 1, pageSize: 200 }) as any
+    const res = await request.get('/production/products', { params: { pageNum: 1, pageSize: 200 } }) as any
     const list = res.data?.records || []
     productOptions.value = list.map((p: any) => ({ label: p.productName || p.materialName, value: p.id }))
   } catch { }
@@ -156,7 +156,7 @@ function viewDetail(record: any) { message.info('详情功能开发中') }
 
 async function handleReceive(record: any) {
   try {
-    await request.put(`/logistics/transfers/${record.id}/receive`)
+    await request.post(`/logistics/transfers/${record.id}/sign`)
     message.success('签收成功')
     fetchData()
   } catch { }
@@ -171,7 +171,7 @@ async function handleSubmit() {
     const items = formState.items.map(i => ({
       productId: i.productId, quantity: i.quantity, unitValue: i.unitValue
     }))
-    await request.post('/logistics/transfers', { type: formState.type, remark: formState.remark, items })
+    await request.post('/logistics/transfers', { transfer: { type: formState.type, remark: formState.remark }, items })
     message.success('创建成功')
     modalVisible.value = false; fetchData()
   } catch { } finally { submitting.value = false }

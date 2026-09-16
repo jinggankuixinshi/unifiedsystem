@@ -20,6 +20,7 @@ import java.util.List;
  * netSalary = baseSalary + performanceBonus + overtimePay - deduction - socialInsurance - housingFund
  */
 @Service
+@DS("finance")
 @RequiredArgsConstructor
 public class SalaryService extends ServiceImpl<FinSalaryMapper, FinSalary> {
 

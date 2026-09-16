@@ -97,7 +97,6 @@ const routes: RouteRecordRaw[] = [
         children: [
           { path: '/logistics/warehouse', name: 'LogiWarehouse', component: () => import('@/views/logistics/warehouse/Index.vue'), meta: { title: '物流仓库' } },
           { path: '/logistics/transfer', name: 'Transfer', component: () => import('@/views/logistics/transfer/Index.vue'), meta: { title: '调拨管理' } },
-          { path: '/logistics/picking', name: 'Picking', component: () => import('@/views/logistics/picking/Index.vue'), meta: { title: '拣货管理' } },
           { path: '/logistics/shipping', name: 'Shipping', component: () => import('@/views/logistics/shipping/Index.vue'), meta: { title: '发货管理' } },
           { path: '/logistics/quality', name: 'LogiQuality', component: () => import('@/views/logistics/quality/Index.vue'), meta: { title: '物流质检' } }
         ]
@@ -109,10 +108,7 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '销售管理', icon: 'ShoppingCartOutlined' },
         children: [
           { path: '/sales/customer', name: 'Customer', component: () => import('@/views/sales/customer/Index.vue'), meta: { title: '客户管理' } },
-          { path: '/sales/order', name: 'SalesOrder', component: () => import('@/views/sales/order/Index.vue'), meta: { title: '销售报单' } },
-          { path: '/sales/price', name: 'PriceManage', component: () => import('@/views/sales/price/Index.vue'), meta: { title: '价格管理' } },
-          { path: '/sales/contract', name: 'Contract', component: () => import('@/views/sales/contract/Index.vue'), meta: { title: '合同管理' } },
-          { path: '/sales/aftersale', name: 'AfterSale', component: () => import('@/views/sales/aftersale/Index.vue'), meta: { title: '售后服务' } }
+          { path: '/sales/order', name: 'SalesOrder', component: () => import('@/views/sales/order/Index.vue'), meta: { title: '销售报单' } }
         ]
       },
       {
@@ -127,8 +123,7 @@ const routes: RouteRecordRaw[] = [
           { path: '/finance/payable', name: 'Payable', component: () => import('@/views/finance/payable/Index.vue'), meta: { title: '应付账款' } },
           { path: '/finance/expense', name: 'Expense', component: () => import('@/views/finance/expense/Index.vue'), meta: { title: '费用报销' } },
           { path: '/finance/budget', name: 'Budget', component: () => import('@/views/finance/budget/Index.vue'), meta: { title: '预算管理' } },
-          { path: '/finance/salary', name: 'Salary', component: () => import('@/views/finance/salary/Index.vue'), meta: { title: '工资管理' } },
-          { path: '/finance/report', name: 'FinancialReport', component: () => import('@/views/finance/report/Index.vue'), meta: { title: '财务报表' } }
+          { path: '/finance/salary', name: 'Salary', component: () => import('@/views/finance/salary/Index.vue'), meta: { title: '工资管理' } }
         ]
       }
     ]

@@ -47,7 +47,7 @@
           >
             <template #bodyCell="{ column, record }">
               <template v-if="column.key === 'leaveType'">
-                <a-tag :color="{ '事假': 'blue', '病假': 'purple', '年假': 'green', '婚假': 'pink' }[record.leaveType] || 'default'">
+                <a-tag :color="({ '事假': 'blue', '病假': 'purple', '年假': 'green', '婚假': 'pink' } as Record<string, string>)[record.leaveType] || 'default'">
                   {{ record.leaveType }}
                 </a-tag>
               </template>
@@ -55,11 +55,6 @@
                 <a-tag :color="record.approvalStatus === '已通过' ? 'green' : record.approvalStatus === '已驳回' ? 'red' : 'orange'">
                   {{ record.approvalStatus || '待审批' }}
                 </a-tag>
-              </template>
-              <template v-if="column.key === 'action'">
-                <a-popconfirm title="确认审批通过？" @confirm="approveLeave(record.id)">
-                  <a>审批</a>
-                </a-popconfirm>
               </template>
             </template>
           </a-table>
@@ -85,11 +80,6 @@
                 <a-tag :color="record.approvalStatus === '已通过' ? 'green' : record.approvalStatus === '已驳回' ? 'red' : 'orange'">
                   {{ record.approvalStatus || '待审批' }}
                 </a-tag>
-              </template>
-              <template v-if="column.key === 'action'">
-                <a-popconfirm title="确认审批通过？" @confirm="approveOvertime(record.id)">
-                  <a>审批</a>
-                </a-popconfirm>
               </template>
             </template>
           </a-table>
@@ -163,8 +153,7 @@ const leaveColumns = [
   { title: '开始时间', dataIndex: 'startTime', key: 'startTime', width: 180 },
   { title: '结束时间', dataIndex: 'endTime', key: 'endTime', width: 180 },
   { title: '时长', dataIndex: 'duration', key: 'duration', width: 80 },
-  { title: '审批状态', key: 'approvalStatus', width: 100 },
-  { title: '操作', key: 'action', width: 80 }
+  { title: '审批状态', key: 'approvalStatus', width: 100 }
 ]
 
 const overtimeColumns = [
@@ -172,8 +161,7 @@ const overtimeColumns = [
   { title: '开始时间', dataIndex: 'startTime', key: 'startTime', width: 180 },
   { title: '结束时间', dataIndex: 'endTime', key: 'endTime', width: 180 },
   { title: '时长', dataIndex: 'duration', key: 'duration', width: 80 },
-  { title: '审批状态', key: 'approvalStatus', width: 100 },
-  { title: '操作', key: 'action', width: 80 }
+  { title: '审批状态', key: 'approvalStatus', width: 100 }
 ]
 
 const recordData = ref<any[]>([])
@@ -220,36 +208,42 @@ async function fetchRecords() {
   loading.value = true
   try {
     const res = await request.get('/system/attendance/records', {
-      pageNum: recordPage.value.current,
-      pageSize: recordPage.value.pageSize
+      params: {
+        pageNum: recordPage.value.current,
+        pageSize: recordPage.value.pageSize
+      }
     }) as any
     recordData.value = res.data?.records || []
     recordPage.value.total = res.data?.total || 0
-  } catch { message.error('加载打卡记录失败') } finally { loading.value = false }
+  } catch { } finally { loading.value = false }
 }
 
 async function fetchLeave() {
   loading.value = true
   try {
     const res = await request.get('/system/attendance/leave', {
-      pageNum: leavePage.value.current,
-      pageSize: leavePage.value.pageSize
+      params: {
+        pageNum: leavePage.value.current,
+        pageSize: leavePage.value.pageSize
+      }
     }) as any
     leaveData.value = res.data?.records || []
     leavePage.value.total = res.data?.total || 0
-  } catch { message.error('加载请假记录失败') } finally { loading.value = false }
+  } catch { } finally { loading.value = false }
 }
 
 async function fetchOvertime() {
   loading.value = true
   try {
     const res = await request.get('/system/attendance/overtime', {
-      pageNum: overtimePage.value.current,
-      pageSize: overtimePage.value.pageSize
+      params: {
+        pageNum: overtimePage.value.current,
+        pageSize: overtimePage.value.pageSize
+      }
     }) as any
     overtimeData.value = res.data?.records || []
     overtimePage.value.total = res.data?.total || 0
-  } catch { message.error('加载加班记录失败') } finally { loading.value = false }
+  } catch { } finally { loading.value = false }
 }
 
 function onTabChange() {
@@ -286,7 +280,7 @@ async function submitLeave() {
     message.success('提交成功')
     leaveModalVisible.value = false
     fetchLeave()
-  } catch { message.error('操作失败') } finally { submitting.value = false }
+  } catch { } finally { submitting.value = false }
 }
 
 async function submitOvertime() {
@@ -301,7 +295,7 @@ async function submitOvertime() {
     message.success('提交成功')
     overtimeModalVisible.value = false
     fetchOvertime()
-  } catch { message.error('操作失败') } finally { submitting.value = false }
+  } catch { } finally { submitting.value = false }
 }
 
 async function approveLeave(id: number) {
@@ -309,7 +303,7 @@ async function approveLeave(id: number) {
     await request.put(`/system/attendance/leave/${id}/approve`)
     message.success('审批成功')
     fetchLeave()
-  } catch { message.error('操作失败') }
+  } catch { }
 }
 
 async function approveOvertime(id: number) {
@@ -317,7 +311,7 @@ async function approveOvertime(id: number) {
     await request.put(`/system/attendance/overtime/${id}/approve`)
     message.success('审批成功')
     fetchOvertime()
-  } catch { message.error('操作失败') }
+  } catch { }
 }
 
 onMounted(() => { fetchRecords() })

@@ -21,7 +21,7 @@
         <a-table
           :columns="columns"
           :data-source="dataSource"
-          :pagination="{ current, pageSize, total, showSizeChanger: true, showTotal: t => `共 ${t} 条` }"
+          :pagination="{ current, pageSize, total, showSizeChanger: true, showTotal: (t: number) => `共 ${t} 条` }"
           row-key="id"
           @change="handleTableChange"
         >
@@ -131,13 +131,11 @@ const rules = {
 async function fetchData() {
   loading.value = true
   try {
-    const res = await request.get('/system/users', { pageNum: current.value, pageSize: pageSize.value, keyword: keyword.value })
+    const res = await request.get('/system/users', { params: { pageNum: current.value, pageSize: pageSize.value, keyword: keyword.value } })
     const data = res as any
     dataSource.value = data.data?.records || []
     total.value = data.data?.total || 0
-  } catch {
-    message.error('加载失败')
-  } finally {
+  } catch { } finally {
     loading.value = false
   }
 }
@@ -202,9 +200,7 @@ async function handleSubmit() {
     }
     modalVisible.value = false
     fetchData()
-  } catch {
-    message.error('操作失败')
-  } finally {
+  } catch { } finally {
     submitting.value = false
   }
 }
@@ -214,9 +210,7 @@ async function handleDelete(id: number) {
     await request.delete(`/system/users/${id}`)
     message.success('删除成功')
     fetchData()
-  } catch {
-    message.error('删除失败')
-  }
+  } catch { }
 }
 
 onMounted(() => {

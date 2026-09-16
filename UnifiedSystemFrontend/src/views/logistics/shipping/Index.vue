@@ -128,7 +128,7 @@ async function fetchData() {
   try {
     const params: any = { pageNum: current.value, pageSize: pageSize.value }
     if (activeTab.value !== 'all') params.status = activeTab.value
-    const res = await request.get('/logistics/shippings', params) as any
+    const res = await request.get('/logistics/shippings', { params }) as any
     dataSource.value = res.data?.records || []
     total.value = res.data?.total || 0
   } catch { } finally { loading.value = false }
@@ -136,7 +136,7 @@ async function fetchData() {
 
 async function fetchProducts() {
   try {
-    const res = await request.get('/production/products', { pageNum: 1, pageSize: 200 }) as any
+    const res = await request.get('/production/products', { params: { pageNum: 1, pageSize: 200 } }) as any
     const list = res.data?.records || []
     productOptions.value = list.map((p: any) => ({ label: p.productName || p.materialName, value: p.id }))
   } catch { }
@@ -154,8 +154,10 @@ async function handleSubmit() {
   try {
     const items = formState.items.map(i => ({ productId: i.productId, quantity: i.quantity, batchNo: i.batchNo }))
     await request.post('/logistics/shippings', {
-      salesOrderId: formState.salesOrderId,
-      shippingMethod: formState.shippingMethod,
+      shipping: {
+        salesOrderId: formState.salesOrderId,
+        shippingMethod: formState.shippingMethod
+      },
       items
     })
     message.success('创建成功')

@@ -18,8 +18,8 @@
               </a-tag>
             </template>
             <template v-if="column.key === 'status'">
-              <a-tag :color="{pending:'orange',approved:'green',rejected:'red'}[record.status]">
-                {{ {pending:'审批中',approved:'已通过',rejected:'已驳回'}[record.status] }}
+              <a-tag :color="({pending:'orange',approved:'green',rejected:'red'} as Record<string, string>)[record.status]">
+                {{ ({pending:'审批中',approved:'已通过',rejected:'已驳回'} as Record<string, string>)[record.status] }}
               </a-tag>
             </template>
             <template v-if="column.key === 'action' && activeTab === 'pending'">
@@ -46,8 +46,8 @@
         <a-descriptions-item label="业务类型">{{ typeNameMap[detailRecord?.businessType] }}</a-descriptions-item>
         <a-descriptions-item label="业务单据ID">{{ detailRecord?.businessId }}</a-descriptions-item>
         <a-descriptions-item label="审批状态">
-          <a-tag :color="{pending:'orange',approved:'green',rejected:'red'}[detailRecord?.status]">
-            {{ {pending:'审批中',approved:'已通过',rejected:'已驳回'}[detailRecord?.status] }}
+          <a-tag :color="({pending:'orange',approved:'green',rejected:'red'} as Record<string, string>)[detailRecord?.status]">
+            {{ ({pending:'审批中',approved:'已通过',rejected:'已驳回'} as Record<string, string>)[detailRecord?.status] }}
           </a-tag>
         </a-descriptions-item>
         <a-descriptions-item label="创建时间">{{ detailRecord?.createTime }}</a-descriptions-item>
@@ -55,9 +55,9 @@
       <a-divider>审批记录</a-divider>
       <a-timeline>
         <a-timeline-item v-for="r in approvalRecords" :key="r.id"
-          :color="{approve:'green',reject:'red',push_up:'orange'}[r.approverAction]">
+          :color="({approve:'green',reject:'red',push_up:'orange'} as Record<string, string>)[r.approverAction]">
           <div>审批人: {{ r.approverId }}</div>
-          <div>操作: {{ {approve:'通过',reject:'驳回',push_up:'上推'}[r.approverAction] }}</div>
+          <div>操作: {{ ({approve:'通过',reject:'驳回',push_up:'上推'} as Record<string, string>)[r.approverAction] }}</div>
           <div v-if="r.comment">意见: {{ r.comment }}</div>
           <div class="record-time">{{ r.actionTime }}</div>
         </a-timeline-item>
@@ -122,7 +122,7 @@ async function handleApprove(record: any) {
   try {
     await request.post(`/workflow/instances/${record.id}/approve`, null, { params: { comment: '同意' } })
     message.success('审批通过'); fetchData()
-  } catch { message.error('操作失败') }
+  } catch { }
 }
 
 function showReject(record: any) {

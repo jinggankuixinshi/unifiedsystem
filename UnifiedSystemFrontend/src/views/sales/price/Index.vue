@@ -93,7 +93,7 @@ async function fetchPrices() {
     const res: any = await getProductPrices({ pageNum: current.value, pageSize: pageSize.value })
     priceData.value = res.data?.records || []
     total.value = res.data?.total || 0
-  } catch { message.error('加载失败') } finally { loading.value = false }
+  } catch { } finally { loading.value = false }
 }
 
 async function fetchConfig() {

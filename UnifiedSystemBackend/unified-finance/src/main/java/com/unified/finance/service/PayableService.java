@@ -22,6 +22,7 @@ import java.time.LocalDate;
 
 @Slf4j
 @Service
+@DS("finance")
 @RequiredArgsConstructor
 public class PayableService extends ServiceImpl<FinPayableMapper, FinPayable> {
 

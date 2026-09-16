@@ -143,7 +143,7 @@ const qualityForm = reactive({ checkType: 'inbound', warehouseId: undefined as n
 async function fetchStock() {
   loading.value = true
   try {
-    const res = await request.get('/logistics/warehouse', { pageNum: current.value, pageSize: pageSize.value }) as any
+    const res = await request.get('/logistics/warehouse', { params: { pageNum: current.value, pageSize: pageSize.value } }) as any
     stockData.value = res.data?.records || []
     total.value = res.data?.total || 0
     stockSelectOptions.value = stockData.value.map((s: any) => ({
@@ -155,7 +155,7 @@ async function fetchStock() {
 
 async function fetchProducts() {
   try {
-    const res = await request.get('/production/products', { pageNum: 1, pageSize: 200 }) as any
+    const res = await request.get('/production/products', { params: { pageNum: 1, pageSize: 200 } }) as any
     const list = res.data?.records || []
     productOptions.value = list.map((p: any) => ({ label: p.productName || p.materialName, value: p.id }))
   } catch { }

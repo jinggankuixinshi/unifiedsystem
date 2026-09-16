@@ -187,12 +187,11 @@ const dataModalTitle = computed(() => isDataEdit.value ? '编辑字典数据' : 
 async function fetchTypes() {
   typeLoading.value = true
   try {
-    const res = await request.get('/system/dict/types', {
-      pageNum: typePage.value.current, pageSize: typePage.value.pageSize
-    }) as any
-    typeData.value = res.data?.records || []
-    typePage.value.total = res.data?.total || 0
-  } catch { message.error('加载字典类型失败') } finally { typeLoading.value = false }
+    const res = await request.get('/system/dict/types') as any
+    const list = res.data || []
+    typeData.value = list
+    typePage.value.total = list.length
+  } catch { } finally { typeLoading.value = false }
 }
 
 async function fetchData() {
@@ -200,13 +199,12 @@ async function fetchData() {
   dataLoading.value = true
   try {
     const res = await request.get('/system/dict/data', {
-      type: selectedType.value.dictType,
-      pageNum: dataPage.value.current,
-      pageSize: dataPage.value.pageSize
+      params: { type: selectedType.value.dictType }
     }) as any
-    dataSource.value = res.data?.records || []
-    dataPage.value.total = res.data?.total || 0
-  } catch { message.error('加载字典数据失败') } finally { dataLoading.value = false }
+    const list = res.data || []
+    dataSource.value = list
+    dataPage.value.total = list.length
+  } catch { } finally { dataLoading.value = false }
 }
 
 function selectType(record: any) {
@@ -245,7 +243,7 @@ async function submitType() {
     }
     typeModalVisible.value = false
     fetchTypes()
-  } catch { message.error('操作失败') } finally { submitting.value = false }
+  } catch { } finally { submitting.value = false }
 }
 
 async function deleteType(id: number) {
@@ -254,7 +252,7 @@ async function deleteType(id: number) {
     message.success('删除成功')
     if (selectedType.value?.id === id) { selectedType.value = null; dataSource.value = [] }
     fetchTypes()
-  } catch { message.error('删除失败') }
+  } catch { }
 }
 
 function openDataCreate() {
@@ -289,7 +287,7 @@ async function submitData() {
     }
     dataModalVisible.value = false
     fetchData()
-  } catch { message.error('操作失败') } finally { submitting.value = false }
+  } catch { } finally { submitting.value = false }
 }
 
 async function deleteData(id: number) {
@@ -297,7 +295,7 @@ async function deleteData(id: number) {
     await request.delete(`/system/dict/data/${id}`)
     message.success('删除成功')
     fetchData()
-  } catch { message.error('删除失败') }
+  } catch { }
 }
 
 onMounted(() => { fetchTypes() })

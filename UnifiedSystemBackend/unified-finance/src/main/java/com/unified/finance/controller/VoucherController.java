@@ -3,9 +3,11 @@ package com.unified.finance.controller;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.unified.common.core.Result;
+import com.unified.finance.dto.VoucherCreateDTO;
 import com.unified.finance.entity.FinVoucher;
 import com.unified.finance.entity.FinVoucherEntry;
 import com.unified.finance.service.VoucherService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -38,8 +40,7 @@ public class VoucherController {
     }
 
     @PostMapping
-    public Result<FinVoucher> create(@RequestParam String summary,
-                                      @RequestBody List<FinVoucherEntry> entries) {
-        return Result.ok(voucherService.createVoucher(summary, entries));
+    public Result<FinVoucher> create(@Valid @RequestBody VoucherCreateDTO dto) {
+        return Result.ok(voucherService.createVoucher(dto.getVoucherDate(), dto.getSummary(), dto.getEntries() != null ? dto.getEntries() : List.of()));
     }
 }

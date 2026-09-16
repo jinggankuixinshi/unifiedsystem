@@ -86,7 +86,7 @@ async function generateReport() {
     })
     message.success('报表生成请求已提交')
     reportModalVisible.value = false
-  } catch { message.error('操作失败') } finally { generating.value = false }
+  } catch { } finally { generating.value = false }
 }
 </script>
 

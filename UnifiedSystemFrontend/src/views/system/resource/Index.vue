@@ -188,7 +188,7 @@ async function fetchTree() {
     totalCount.value = countNodes(tree)
     treeData.value = tree
     resourceOptions.value = tree
-  } catch { message.error('加载失败') } finally { loading.value = false }
+  } catch { } finally { loading.value = false }
 }
 
 function isDraggable(record: any): boolean {
@@ -232,9 +232,7 @@ async function saveOrder(dragged: HTMLElement) {
   try {
     await request.put('/system/resources/sort', payload)
     message.success('排序已保存')
-  } catch {
-    message.error('排序保存失败')
-  } finally {
+  } catch { } finally {
     fetchTree()
   }
 }
@@ -268,11 +266,11 @@ async function handleSubmit() {
       await request.post('/system/resources', payload); message.success('创建成功')
     }
     modalVisible.value = false; fetchTree()
-  } catch { message.error('操作失败') } finally { submitting.value = false }
+  } catch { } finally { submitting.value = false }
 }
 
 async function handleDelete(id: number) {
-  try { await request.delete(`/system/resources/${id}`); message.success('删除成功'); fetchTree() } catch { message.error('删除失败') }
+  try { await request.delete(`/system/resources/${id}`); message.success('删除成功'); fetchTree() } catch { }
 }
 
 onMounted(async () => {

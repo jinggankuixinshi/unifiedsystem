@@ -19,6 +19,7 @@ import java.math.BigDecimal;
 
 @Slf4j
 @Service
+@DS("finance")
 @RequiredArgsConstructor
 public class BudgetService extends ServiceImpl<FinBudgetMapper, FinBudget> {
 

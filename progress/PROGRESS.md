@@ -290,3 +290,41 @@ UPDATE sys_user SET password='$2a$10$GEP6wVDdrnbZx47tCkzQFujcjmhwS2i2yltu0ouG9J0
 - 审计切面接入（注意参数脱敏，勿记密码）、SequenceGenerator 改 DB 序列、WebSocket 会话管理、登录安全（401/禁用/登出）、前端权限码接线（菜单+按钮）、死代码与未用依赖清理（xlsx、api/modules 空壳）、补测试
 
 **暂缓项：** e签宝真实对接、JimuReport 完整嵌入、AQL 完整抽样表（先用阈值判定）、万级并发压测。
+
+---
+
+# Phase 0 执行记录与运行时验证（2026-09-16 深夜）
+
+## 九、Phase 0 全部完成 ✅
+
+| 项 | 内容 | 结果 |
+|---|---|---|
+| 问题 1 | 前端 33 处 query 参数改为 `{ params: {...} }`（含 api/modules 全部函数）；修复 TS7053×13、TS7006、TS7031；删除无引用 `utils/composables.ts` | `npm run typecheck` 0 错误、`npm run build` 通过 |
+| 问题 1 关联 | 字典管理前后端契约：接口返回 List，前端原按 `records/total` 读取导致列表恒空 → 改为按 List 渲染并本地分页 | 字典类型/数据可正常显示 |
+| 问题 2 | 前端全面隐藏：菜单+路由移除 销售价格/合同/售后、拣货管理、财务报表 5 页（页面文件保留）；隐藏 账户编辑/删除、预算编辑、考勤审批按钮；调拨签收由 `PUT /receive` 改调已有 `POST /{id}/sign` | 无 404/405 入口 |
+| 问题 3 | 契约统一单 @RequestBody DTO：新增 `SalesOrderCreateDTO`、`VoucherCreateDTO`、`PaymentDTO`、`TransferCreateDTO`、`ShippingCreateDTO`；凭证日期改为透传；补 sales/transfer 创建路径空值兜底 | 4 组接口实测 200 |
+| 问题 4 | `@DS` 补齐：finance 6 个 Service、logistics 4 个、sales 2 个（Contract/SalesOrder）；**WorkflowEngine 增加 `@DS("system")`**（关键：否则类级 @DS 会让工作流查询落到业务库）；4 处创建方法（采购/报单/调拨/报销）改 `@DSTransactional` | 跨库写入实测正确 |
+| 问题 5 | request.ts：去重 key 纳入实际 params/body、同 key 才 abort、成功/失败统一清理（取消不误删）；错误提示统一由拦截器负责，清除约 60 处 view 重复 catch 提示 | 构建通过，无重复 toast |
+| 附加 | `MybatisPlusConfig` 补 `PaginationInnerInterceptor` + `unified-common/pom.xml` 增 `mybatis-plus-jsqlparser`（MP 3.5.9+ 分页拦截器独立包） | 分页实测 total=12、records=5 |
+| 附加 | `mvn compile` 全模块通过 | ✅ |
+
+**验证说明：** 以新代码启动后端（admin/admin123）实测：
+- 分页：`GET /system/users?pageNum=1&pageSize=5` → total=12、records=5 ✅
+- 凭证：`POST /finance/vouchers`（body DTO）→ VCH 创建成功、`voucherDate=2026-09-01` 透传生效 ✅
+- 调拨：`POST /logistics/transfers` → TR 单成功、totalValue=100、wf_instance(pending) ✅
+- 报单：`POST /sales/orders` → SO 单成功、totalAmount=200、wf_instance(pending) ✅
+- 采购：`POST /production/purchase` → PR 单成功、total=20、wf_instance(pending) ✅
+- 应收：创建 + `POST /finance/receivables/{id}/payment`（body DTO）→ received=200 ✅
+- 跨库：业务单落各自库（logistics/sales/finance/production），wf_instance 落 system 库；`@DSTransactional` 未出现回滚异常 ✅
+
+## 十、执行中新发现（未修，纳入后续 Phase）
+
+| 级别 | 问题 | 处理建议 |
+|---|---|---|
+| P1 | `SequenceGenerator` 重启重号被实锤：重启后凭证重发 `VCH20260916000001` 撞唯一键 → 500 | Phase 5 改 DB 序列（`sys_sequence` 表）或 Redis |
+| P1 | `fin_receivable.sales_order_id` NOT NULL，但前端表单销售单 ID 可空 → 传空必 500 | Phase 1 前端必填校验或后端允许为空 |
+| P2 | `prod_material` 无种子数据，物料下拉为空（本地库） | 补种子 SQL 或前端先建物料 |
+| P2 | 生产仓库页 `POST /production/warehouse/inbound|outbound` 的 items 走 query 参数，后端结构待对齐（同 4 组契约问题族） | Phase 1/2 一并改 body DTO |
+| 备查 | 本地 Redis 5.0.14 无 ACL（文档按 Redis 7 三账户设计）；当前运行链路未用 Redis，不受影响 | 启用锁/序列号时再适配 |
+
+**下一步：** 进入 Phase 1（审批闭环：工作流条件分支 + 审批人解析 + ApprovalCallback 回写 + 站内通知；报销明细透传、销售订单特批理由、考勤接工作流）。

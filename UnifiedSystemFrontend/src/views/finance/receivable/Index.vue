@@ -108,7 +108,7 @@ async function fetchData() {
     dataSource.value = records
     total.value = res.data?.total || 0
     summary.value = records.filter((r: any) => r.status !== 1).reduce((s: number, r: any) => s + Number(r.balance || 0), 0)
-  } catch { message.error('加载失败') } finally { loading.value = false }
+  } catch { } finally { loading.value = false }
 }
 
 function openCreate() { createForm.customerId = ''; createForm.orderId = ''; createForm.amount = 0; createForm.dueDate = dayjs(); createModalVisible.value = true }

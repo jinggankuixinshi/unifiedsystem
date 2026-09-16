@@ -24,9 +24,6 @@
               <a-progress :percent="record.budgetAmount ? Math.min(100, Math.round(record.executedAmount / record.budgetAmount * 100)) : 0"
                 :status="record.executedAmount > record.budgetAmount ? 'exception' : 'normal'" size="small" />
             </template>
-            <template v-if="column.key === 'action'">
-              <a @click="openEdit(record)">编辑</a>
-            </template>
           </template>
         </a-table>
       </a-spin>
@@ -65,8 +62,7 @@ const columns = [
   { title: '年度', dataIndex: 'budgetYear', width: 80 },
   { title: '预算金额', key: 'budgetAmount', width: 130 },
   { title: '已执行', key: 'executedAmount', width: 130 },
-  { title: '执行进度', key: 'usage', width: 180 },
-  { title: '操作', key: 'action', width: 80 }
+  { title: '执行进度', key: 'usage', width: 180 }
 ]
 
 const pagination = computed(() => ({
@@ -86,7 +82,7 @@ async function fetchData() {
     const res: any = await getBudgets({ pageNum: current.value, pageSize: pageSize.value, year: filterYear.value })
     dataSource.value = res.data?.records || []
     total.value = res.data?.total || 0
-  } catch { message.error('加载失败') } finally { loading.value = false }
+  } catch { } finally { loading.value = false }
 }
 
 function openCreate() {

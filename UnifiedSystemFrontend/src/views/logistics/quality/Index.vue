@@ -55,7 +55,7 @@ async function fetchData() {
   loading.value = true
   try {
     const res = await request.get('/logistics/warehouse', {
-      pageNum: current.value, pageSize: pageSize.value, includeQuality: true
+      params: { pageNum: current.value, pageSize: pageSize.value, includeQuality: true }
     }) as any
     dataSource.value = res.data?.records || []
     total.value = res.data?.total || 0

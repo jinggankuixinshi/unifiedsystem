@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+@DS("sales")
 @RequiredArgsConstructor
 public class ContractService extends com.baomidou.mybatisplus.extension.service.impl.ServiceImpl<SalContractMapper, SalContract> {
 

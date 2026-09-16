@@ -77,7 +77,7 @@ async function fetchData() {
     const res: any = await getAfterSales({ pageNum: current.value, pageSize: pageSize.value })
     dataSource.value = res.data?.records || []
     total.value = res.data?.total || 0
-  } catch { message.error('加载失败') } finally { loading.value = false }
+  } catch { } finally { loading.value = false }
 }
 
 function openCreate() { formState.orderId = ''; formState.type = 'return'; formState.description = ''; modalVisible.value = true }

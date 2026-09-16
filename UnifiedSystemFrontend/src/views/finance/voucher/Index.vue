@@ -153,11 +153,11 @@ async function fetchData() {
   loading.value = true
   try {
     const res = await request.get('/finance/vouchers', {
-      pageNum: current.value, pageSize: pageSize.value
+      params: { pageNum: current.value, pageSize: pageSize.value }
     }) as any
     dataSource.value = res.data?.records || []
     total.value = res.data?.total || 0
-  } catch { message.error('加载凭证失败') } finally { loading.value = false }
+  } catch { } finally { loading.value = false }
 }
 
 async function fetchSubjects() {
@@ -203,7 +203,7 @@ async function handleSubmit() {
     message.success('创建成功')
     modalVisible.value = false
     fetchData()
-  } catch { message.error('操作失败') } finally { submitting.value = false }
+  } catch { } finally { submitting.value = false }
 }
 
 function viewEntries(record: any) {

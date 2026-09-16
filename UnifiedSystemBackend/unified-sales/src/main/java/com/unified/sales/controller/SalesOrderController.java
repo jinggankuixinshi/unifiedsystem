@@ -2,9 +2,11 @@ package com.unified.sales.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.unified.common.core.Result;
+import com.unified.sales.dto.SalesOrderCreateDTO;
 import com.unified.sales.entity.SalSalesOrder;
 import com.unified.sales.entity.SalSalesOrderItem;
 import com.unified.sales.service.SalesOrderService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -36,8 +38,7 @@ public class SalesOrderController {
     }
 
     @PostMapping
-    public Result<SalSalesOrder> create(@RequestBody SalSalesOrder order,
-                                         @RequestBody(required = false) List<SalSalesOrderItem> items) {
-        return Result.ok(orderService.createOrder(order, items != null ? items : List.of()));
+    public Result<SalSalesOrder> create(@Valid @RequestBody SalesOrderCreateDTO dto) {
+        return Result.ok(orderService.createOrder(dto.getOrder(), dto.getItems() != null ? dto.getItems() : List.of()));
     }
 }

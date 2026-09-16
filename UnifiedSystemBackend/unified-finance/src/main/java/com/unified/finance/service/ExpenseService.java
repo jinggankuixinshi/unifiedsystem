@@ -1,6 +1,7 @@
 package com.unified.finance.service;
 
 import com.baomidou.dynamic.datasource.annotation.DS;
+import com.baomidou.dynamic.datasource.annotation.DSTransactional;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -24,6 +25,7 @@ import java.util.List;
 
 @Slf4j
 @Service
+@DS("finance")
 @RequiredArgsConstructor
 public class ExpenseService extends ServiceImpl<FinExpenseMapper, FinExpense> {
 
@@ -31,14 +33,14 @@ public class ExpenseService extends ServiceImpl<FinExpenseMapper, FinExpense> {
     private final FinBudgetMapper budgetMapper;
     private final WorkflowEngine workflowEngine;
 
-    @Transactional(rollbackFor = Exception.class)
+    @DSTransactional(rollbackFor = Exception.class)
     public FinExpense createExpense(FinExpense expense, List<FinExpenseItem> items) {
-        expense.setExpenseNo(SequenceGenerator.generate("EX"));
+        expense.setExpenseNo(SequenceGenerator.generate("EXP"));
         expense.setApplicantId(UserContext.get().getUserId());
         expense.setDeptId(UserContext.get().getDeptId());
 
         BigDecimal total = items.stream()
-                .map(FinExpenseItem::getAmount)
+                .map(i -> i.getAmount() == null ? BigDecimal.ZERO : i.getAmount())
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         expense.setTotalAmount(total);
         expense.setApprovalStatus(0);

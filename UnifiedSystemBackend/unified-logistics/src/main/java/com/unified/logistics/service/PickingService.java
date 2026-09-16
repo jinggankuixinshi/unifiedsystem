@@ -24,6 +24,7 @@ import java.util.List;
  */
 @Slf4j
 @Service
+@DS("logistics")
 @RequiredArgsConstructor
 public class PickingService extends ServiceImpl<LogPickingMapper, LogPicking> {
 

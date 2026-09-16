@@ -22,6 +22,7 @@ import java.util.List;
  */
 @Slf4j
 @Service
+@DS("logistics")
 @RequiredArgsConstructor
 public class ShippingService extends ServiceImpl<LogShippingMapper, LogShipping> {
 

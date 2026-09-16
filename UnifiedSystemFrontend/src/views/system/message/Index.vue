@@ -46,7 +46,7 @@ const total = ref(0)
 async function fetchMessages() {
   loading.value = true
   try {
-    const res = await request.get('/messages', { pageNum: current.value, pageSize: pageSize.value }) as any
+    const res = await request.get('/messages', { params: { pageNum: current.value, pageSize: pageSize.value } }) as any
     messages.value = res.data?.records || []
     total.value = res.data?.total || 0
   } catch { } finally { loading.value = false }
@@ -71,7 +71,7 @@ async function markAllRead() {
     messages.value.forEach(m => m.isRead = 1)
     messageStore.setUnreadCount(0)
     message.success('已全部标记为已读')
-  } catch { message.error('操作失败') }
+  } catch { }
 }
 
 onMounted(() => { fetchMessages(); messageStore.fetchUnreadCount() })

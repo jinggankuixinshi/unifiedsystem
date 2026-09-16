@@ -27,8 +27,8 @@
               <span v-else>-</span>
             </template>
             <template v-if="column.key === 'status'">
-              <a-tag :color="{0:'orange',1:'green',2:'red'}[record.approvalStatus]">
-                {{ {0:'待审批',1:'已通过',2:'已驳回'}[record.approvalStatus] }}
+              <a-tag :color="({0:'orange',1:'green',2:'red'} as Record<number, string>)[record.approvalStatus]">
+                {{ ({0:'待审批',1:'已通过',2:'已驳回'} as Record<number, string>)[record.approvalStatus] }}
               </a-tag>
             </template>
             <template v-if="column.key === 'action'">
@@ -133,7 +133,7 @@ async function fetchData() {
   loading.value = true
   try {
     const status = activeTab.value === 'all' ? undefined : Number(activeTab.value)
-    const res = await request.get('/sales/orders', { pageNum: current.value, pageSize: pageSize.value, status }) as any
+    const res = await request.get('/sales/orders', { params: { pageNum: current.value, pageSize: pageSize.value, status } }) as any
     dataSource.value = res.data?.records || []
     total.value = res.data?.total || 0
   } catch { } finally { loading.value = false }
@@ -170,10 +170,10 @@ async function handleSubmit() {
       productId: i.productId, specification: i.specification,
       quantity: i.quantity, unitPrice: i.unitPrice
     }))
-    await request.post('/sales/orders', order, { params: { items: orderItems } })
+    await request.post('/sales/orders', { order, items: orderItems })
     message.success('提交成功')
     modalVisible.value = false; fetchData()
-  } catch { message.error('提交失败') } finally { submitting.value = false }
+  } catch { } finally { submitting.value = false }
 }
 
 onMounted(() => { fetchData(); fetchOptions() })

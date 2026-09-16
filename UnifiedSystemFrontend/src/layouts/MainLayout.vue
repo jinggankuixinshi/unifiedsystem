@@ -51,6 +51,10 @@ function navigate(key: string) {
   router.push(key)
 }
 
+function onMenuClick(info: { key: string | number }) {
+  navigate(String(info.key))
+}
+
 async function handleLogout() {
   await userStore.logout()
   ws?.close()
@@ -79,7 +83,7 @@ onUnmounted(() => {
         v-model:openKeys="openKeys"
         mode="inline"
         theme="dark"
-        @click="({ key }) => navigate(key)"
+        @click="onMenuClick"
       >
         <a-menu-item key="/dashboard">
           <template #icon><DashboardOutlined /></template>
@@ -113,7 +117,6 @@ onUnmounted(() => {
           <template #title>物流管理</template>
           <a-menu-item key="/logistics/warehouse">物流仓库</a-menu-item>
           <a-menu-item key="/logistics/transfer">调拨管理</a-menu-item>
-          <a-menu-item key="/logistics/picking">拣货管理</a-menu-item>
           <a-menu-item key="/logistics/shipping">发货管理</a-menu-item>
           <a-menu-item key="/logistics/quality">物流质检</a-menu-item>
         </a-sub-menu>
@@ -122,9 +125,6 @@ onUnmounted(() => {
           <template #title>销售管理</template>
           <a-menu-item key="/sales/customer">客户管理</a-menu-item>
           <a-menu-item key="/sales/order">销售报单</a-menu-item>
-          <a-menu-item key="/sales/price">价格管理</a-menu-item>
-          <a-menu-item key="/sales/contract">合同管理</a-menu-item>
-          <a-menu-item key="/sales/aftersale">售后服务</a-menu-item>
         </a-sub-menu>
         <a-sub-menu key="/finance">
           <template #icon><DollarOutlined /></template>
@@ -136,7 +136,6 @@ onUnmounted(() => {
           <a-menu-item key="/finance/expense">费用报销</a-menu-item>
           <a-menu-item key="/finance/budget">预算管理</a-menu-item>
           <a-menu-item key="/finance/salary">工资管理</a-menu-item>
-          <a-menu-item key="/finance/report">财务报表</a-menu-item>
         </a-sub-menu>
       </a-menu>
     </a-layout-sider>

@@ -2,9 +2,11 @@ package com.unified.logistics.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.unified.common.core.Result;
+import com.unified.logistics.dto.ShippingCreateDTO;
 import com.unified.logistics.entity.*;
 import com.unified.logistics.service.PickingService;
 import com.unified.logistics.service.ShippingService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -47,9 +49,8 @@ public class PickingShippingController {
     }
 
     @PostMapping("/shippings")
-    public Result<LogShipping> createShipping(@RequestBody LogShipping shipping,
-                                               @RequestParam(required = false) List<LogShippingItem> items) {
-        return Result.ok(shippingService.createShipping(shipping, items != null ? items : List.of()));
+    public Result<LogShipping> createShipping(@Valid @RequestBody ShippingCreateDTO dto) {
+        return Result.ok(shippingService.createShipping(dto.getShipping(), dto.getItems() != null ? dto.getItems() : List.of()));
     }
 
     @PutMapping("/shippings/{id}/print")

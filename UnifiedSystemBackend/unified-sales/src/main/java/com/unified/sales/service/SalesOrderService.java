@@ -1,6 +1,7 @@
 package com.unified.sales.service;
 
 import com.baomidou.dynamic.datasource.annotation.DS;
+import com.baomidou.dynamic.datasource.annotation.DSTransactional;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -32,6 +33,7 @@ import java.util.List;
 
 @Slf4j
 @Service
+@DS("sales")
 @RequiredArgsConstructor
 public class SalesOrderService extends ServiceImpl<SalSalesOrderMapper, SalSalesOrder> {
 
@@ -40,10 +42,15 @@ public class SalesOrderService extends ServiceImpl<SalSalesOrderMapper, SalSales
     private final SalPriceAnomalyConfigMapper anomalyConfigMapper;
     private final WorkflowEngine workflowEngine;
 
-    @Transactional(rollbackFor = Exception.class)
+    @DSTransactional(rollbackFor = Exception.class)
     public SalSalesOrder createOrder(SalSalesOrder order, List<SalSalesOrderItem> items) {
         order.setOrderNo(SequenceGenerator.generate("SO"));
         order.setSalespersonId(UserContext.get().getUserId());
+
+        for (SalSalesOrderItem item : items) {
+            if (item.getUnitPrice() == null) item.setUnitPrice(BigDecimal.ZERO);
+            if (item.getQuantity() == null) item.setQuantity(BigDecimal.ZERO);
+        }
 
         BigDecimal total = BigDecimal.ZERO;
         int maxAnomalyLevel = 0;

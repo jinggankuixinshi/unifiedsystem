@@ -1,6 +1,7 @@
 package com.unified.production.service.impl;
 
 import com.baomidou.dynamic.datasource.annotation.DS;
+import com.baomidou.dynamic.datasource.annotation.DSTransactional;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -39,7 +40,7 @@ public class PurchaseRequestServiceImpl extends ServiceImpl<ProdPurchaseRequestM
     private final WorkflowEngine workflowEngine;
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
+    @DSTransactional(rollbackFor = Exception.class)
     public ProdPurchaseRequest createRequest(ProdPurchaseRequest request, List<ProdPurchaseRequestItem> items) {
         request.setRequestNo(SequenceGenerator.generate("PR"));
         UserContext ctx = UserContext.get();

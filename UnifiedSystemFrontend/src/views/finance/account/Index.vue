@@ -34,14 +34,6 @@
                   {{ record.status === 1 ? '启用' : '停用' }}
                 </a-tag>
               </template>
-              <template v-if="column.key === 'action'">
-                <a-space size="small">
-                  <a @click="openAccountEdit(record)">编辑</a>
-                  <a-popconfirm title="确认删除？" @confirm="deleteAccount(record.id)">
-                    <a class="danger-link">删除</a>
-                  </a-popconfirm>
-                </a-space>
-              </template>
             </template>
           </a-table>
         </template>
@@ -57,7 +49,7 @@
           >
             <template #bodyCell="{ column, record }">
               <template v-if="column.key === 'type'">
-                <a-tag :color="{ '资产': 'blue', '负债': 'orange', '权益': 'purple', '收入': 'green', '费用': 'red' }[record.type] || 'default'">
+                <a-tag :color="({ '资产': 'blue', '负债': 'orange', '权益': 'purple', '收入': 'green', '费用': 'red' } as Record<string, string>)[record.type] || 'default'">
                   {{ record.type || '-' }}
                 </a-tag>
               </template>
@@ -114,8 +106,7 @@ const accountColumns = [
   { title: '开户行', dataIndex: 'bankName', key: 'bankName' },
   { title: '账户类型', dataIndex: 'accountType', key: 'accountType', width: 100 },
   { title: '余额', key: 'balance', width: 150 },
-  { title: '状态', key: 'status', width: 80 },
-  { title: '操作', key: 'action', width: 120 }
+  { title: '状态', key: 'status', width: 80 }
 ]
 
 const subjectColumns = [
@@ -147,11 +138,11 @@ async function fetchAccounts() {
   loading.value = true
   try {
     const res = await request.get('/finance/accounts', {
-      pageNum: accountPage.value.current, pageSize: accountPage.value.pageSize
+      params: { pageNum: accountPage.value.current, pageSize: accountPage.value.pageSize }
     }) as any
     accountData.value = res.data?.records || []
     accountPage.value.total = res.data?.total || 0
-  } catch { message.error('加载账户失败') } finally { loading.value = false }
+  } catch { } finally { loading.value = false }
 }
 
 async function fetchSubjects() {
@@ -165,7 +156,7 @@ async function fetchSubjects() {
         .map((i: any) => ({ ...i, children: buildTree(items, i.id) }))
     }
     subjectData.value = buildTree(list)
-  } catch { message.error('加载会计科目失败') } finally { loading.value = false }
+  } catch { } finally { loading.value = false }
 }
 
 function onTabChange() {
@@ -204,7 +195,7 @@ async function submitAccount() {
     }
     accountModalVisible.value = false
     fetchAccounts()
-  } catch { message.error('操作失败') } finally { submitting.value = false }
+  } catch { } finally { submitting.value = false }
 }
 
 async function deleteAccount(id: number) {
@@ -212,7 +203,7 @@ async function deleteAccount(id: number) {
     await request.delete(`/finance/accounts/${id}`)
     message.success('删除成功')
     fetchAccounts()
-  } catch { message.error('删除失败') }
+  } catch { }
 }
 
 onMounted(() => { fetchAccounts() })

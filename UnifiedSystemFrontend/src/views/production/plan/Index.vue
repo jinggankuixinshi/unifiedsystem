@@ -146,11 +146,11 @@ async function fetchPlans() {
   loading.value = true
   try {
     const res = await request.get('/production/plans', {
-      pageNum: planPage.value.current, pageSize: planPage.value.pageSize
+      params: { pageNum: planPage.value.current, pageSize: planPage.value.pageSize }
     }) as any
     planData.value = res.data?.records || []
     planPage.value.total = res.data?.total || 0
-  } catch { message.error('加载生产计划失败') } finally { loading.value = false }
+  } catch { } finally { loading.value = false }
 }
 
 async function fetchSchedule() {
@@ -159,12 +159,12 @@ async function fetchSchedule() {
   try {
     const res = await request.get(`/production/plans/${selectedPlanId.value}/schedules`) as any
     scheduleData.value = res.data || []
-  } catch { message.error('加载排期失败') } finally { loading.value = false }
+  } catch { } finally { loading.value = false }
 }
 
 async function fetchProducts() {
   try {
-    const res = await request.get('/production/products', { pageNum: 1, pageSize: 200 }) as any
+    const res = await request.get('/production/products', { params: { pageNum: 1, pageSize: 200 } }) as any
     const list = res.data?.records || []
     productOptions.value = list.map((p: any) => ({ label: p.productName, value: p.id }))
   } catch { }
@@ -199,7 +199,7 @@ async function submitPlan() {
     message.success('创建成功')
     planModalVisible.value = false
     fetchPlans()
-  } catch { message.error('操作失败') } finally { submitting.value = false }
+  } catch { } finally { submitting.value = false }
 }
 
 onMounted(() => { fetchPlans(); fetchProducts() })

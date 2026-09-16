@@ -242,12 +242,12 @@ async function fetchProducts() {
   loading.value = true
   try {
     const res = await request.get('/production/products', {
-      pageNum: productPage.value.current, pageSize: productPage.value.pageSize
+      params: { pageNum: productPage.value.current, pageSize: productPage.value.pageSize }
     }) as any
     productData.value = res.data?.records || []
     productPage.value.total = res.data?.total || 0
     productOptions.value = (res.data?.records || []).map((p: any) => ({ label: p.productName, value: p.id }))
-  } catch { message.error('加载产品列表失败') } finally { loading.value = false }
+  } catch { } finally { loading.value = false }
 }
 
 async function fetchBom() {
@@ -264,18 +264,18 @@ async function fetchBom() {
     } else {
       bomData.value = []
     }
-  } catch { message.error('加载BOM失败') } finally { loading.value = false }
+  } catch { } finally { loading.value = false }
 }
 
 async function fetchMaterials() {
   loading.value = true
   try {
     const res = await request.get('/production/materials', {
-      pageNum: materialPage.value.current, pageSize: materialPage.value.pageSize
+      params: { pageNum: materialPage.value.current, pageSize: materialPage.value.pageSize }
     }) as any
     materialData.value = res.data?.records || []
     materialPage.value.total = res.data?.total || 0
-  } catch { message.error('加载物料列表失败') } finally { loading.value = false }
+  } catch { } finally { loading.value = false }
 }
 
 function onTabChange() {
@@ -316,7 +316,7 @@ async function submitProduct() {
     }
     productModalVisible.value = false
     fetchProducts()
-  } catch { message.error('操作失败') } finally { submitting.value = false }
+  } catch { } finally { submitting.value = false }
 }
 
 async function deleteProduct(id: number) {
@@ -324,7 +324,7 @@ async function deleteProduct(id: number) {
     await request.delete(`/production/products/${id}`)
     message.success('删除成功')
     fetchProducts()
-  } catch { message.error('删除失败') }
+  } catch { }
 }
 
 function openMaterialCreate() {
@@ -352,7 +352,7 @@ async function submitMaterial() {
     }
     materialModalVisible.value = false
     fetchMaterials()
-  } catch { message.error('操作失败') } finally { submitting.value = false }
+  } catch { } finally { submitting.value = false }
 }
 
 async function deleteMaterial(id: number) {
@@ -360,7 +360,7 @@ async function deleteMaterial(id: number) {
     await request.delete(`/production/materials/${id}`)
     message.success('删除成功')
     fetchMaterials()
-  } catch { message.error('删除失败') }
+  } catch { }
 }
 
 onMounted(() => { fetchProducts() })

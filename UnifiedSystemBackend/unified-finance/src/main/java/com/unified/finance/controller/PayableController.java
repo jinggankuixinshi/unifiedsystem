@@ -2,12 +2,12 @@ package com.unified.finance.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.unified.common.core.Result;
+import com.unified.finance.dto.PaymentDTO;
 import com.unified.finance.entity.FinPayable;
 import com.unified.finance.service.PayableService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
-
-import java.math.BigDecimal;
 
 @RestController
 @RequestMapping("/api/finance/payables")
@@ -35,9 +35,7 @@ public class PayableController {
     }
 
     @PostMapping("/{id}/payment")
-    public Result<FinPayable> payment(@PathVariable Long id,
-                                       @RequestParam BigDecimal amount,
-                                       @RequestParam(defaultValue = "bank") String method) {
-        return Result.ok(payableService.logPayment(id, amount, method));
+    public Result<FinPayable> payment(@PathVariable Long id, @Valid @RequestBody PaymentDTO dto) {
+        return Result.ok(payableService.logPayment(id, dto.getAmount(), dto.getPaymentMethod() != null ? dto.getPaymentMethod() : "bank"));
     }
 }

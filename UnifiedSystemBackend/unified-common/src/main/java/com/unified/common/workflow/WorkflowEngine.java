@@ -1,5 +1,6 @@
 package com.unified.common.workflow;
 
+import com.baomidou.dynamic.datasource.annotation.DS;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.unified.common.exception.BusinessException;
 import com.unified.common.exception.ErrorCode;
@@ -25,6 +26,7 @@ import java.util.List;
  */
 @Slf4j
 @Service
+@DS("system")
 @RequiredArgsConstructor
 public class WorkflowEngine {
 

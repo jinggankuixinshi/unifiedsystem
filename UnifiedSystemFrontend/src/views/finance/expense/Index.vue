@@ -19,11 +19,11 @@
           <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'totalAmount'">¥{{ Number(record.totalAmount).toLocaleString() }}</template>
             <template v-if="column.key === 'expenseType'">
-              <a-tag>{{ { travel: '差旅', office: '办公', entertainment: '招待', other: '其他' }[record.expenseType] || record.expenseType }}</a-tag>
+              <a-tag>{{ ({ travel: '差旅', office: '办公', entertainment: '招待', other: '其他' } as Record<string, string>)[record.expenseType] || record.expenseType }}</a-tag>
             </template>
             <template v-if="column.key === 'status'">
-              <a-tag :color="{0:'orange',1:'green',2:'red'}[record.approvalStatus]">
-                {{ {0:'待审批',1:'已通过',2:'已驳回'}[record.approvalStatus] }}
+              <a-tag :color="({0:'orange',1:'green',2:'red'} as Record<number, string>)[record.approvalStatus]">
+                {{ ({0:'待审批',1:'已通过',2:'已驳回'} as Record<number, string>)[record.approvalStatus] }}
               </a-tag>
             </template>
           </template>
@@ -91,7 +91,7 @@ function addExpenseItem() { expenseItems.value.push({ itemName: '', amount: 0 })
 async function fetchData() {
   loading.value = true
   try {
-    const res = await request.get('/finance/expenses', { pageNum: current.value, pageSize: pageSize.value }) as any
+    const res = await request.get('/finance/expenses', { params: { pageNum: current.value, pageSize: pageSize.value } }) as any
     dataSource.value = res.data?.records || []
     total.value = res.data?.total || 0
   } catch { } finally { loading.value = false }
