@@ -1,0 +1,9 @@
+spring:
+  datasource:
+    dynamic:
+      primary: system
+      strict: true
+
+logging:
+  level:
+    com.unified.common: debug

@@ -1,0 +1,44 @@
+{
+  "name": "unified-system-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "UnifiedSystem 企业管理系统前端",
+  "main": "electron/main.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "electron:dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
+    "electron:build": "vite build && electron-builder",
+    "lint": "eslint . --ext .vue,.js,.jsx,.ts,.tsx",
+    "typecheck": "vue-tsc --noEmit"
+  },
+  "dependencies": {
+    "@ant-design/icons-vue": "^7.0.1",
+    "ant-design-vue": "^4.2.3",
+    "axios": "^1.7.2",
+    "dayjs": "^1.11.11",
+    "echarts": "^5.5.0",
+    "pinia": "^2.1.7",
+    "sortablejs": "^1.15.7",
+    "vue": "^3.4.31",
+    "vue-router": "^4.4.0",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.9",
+    "@types/sortablejs": "^1.15.9",
+    "@vitejs/plugin-vue": "^5.0.5",
+    "concurrently": "^8.2.2",
+    "electron": "^29.4.0",
+    "electron-builder": "^24.13.3",
+    "less": "^4.8.1",
+    "sass": "^1.77.6",
+    "typescript": "^5.5.3",
+    "unplugin-auto-import": "^0.17.6",
+    "unplugin-vue-components": "^0.27.0",
+    "vite": "^5.3.3",
+    "vue-tsc": "^2.0.26",
+    "wait-on": "^7.2.0"
+  }
+}

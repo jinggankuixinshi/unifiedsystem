@@ -1,0 +1,186 @@
+@import 'tokens.less';
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB',
+    'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  background-color: @bg-page;
+  color: @text-body;
+  font-size: @font-size-base;
+}
+
+#app {
+  width: 100%;
+  height: 100%;
+}
+
+.ant-table {
+  font-size: @font-size-base;
+}
+
+.ant-table-thead > tr > th {
+  background: @bg-page !important;
+  color: @text-heading;
+  font-weight: 600;
+  border-bottom: 1px solid @border-color;
+}
+
+.ant-table-tbody > tr > td {
+  border-bottom: 1px solid @border-color;
+}
+
+.ant-table-tbody > tr:hover > td {
+  background: @color-primary-bg !important;
+}
+
+/* 树形表格层级色阶：仅展开的树块内生效（树内层级越低颜色越浅，最深 5 级封顶；树外保持正常色） */
+.ant-table-tbody > tr.tree-depth-1 > td { background: @tree-depth-1 !important; }
+.ant-table-tbody > tr.tree-depth-2 > td { background: @tree-depth-2 !important; }
+.ant-table-tbody > tr.tree-depth-3 > td { background: @tree-depth-3 !important; }
+.ant-table-tbody > tr.tree-depth-4 > td { background: @tree-depth-4 !important; }
+.ant-table-tbody > tr.tree-depth-5 > td { background: @tree-depth-5 !important; }
+.ant-table-tbody > tr.tree-depth-1:hover > td { background: @tree-depth-1-hover !important; }
+.ant-table-tbody > tr.tree-depth-2:hover > td { background: @tree-depth-2-hover !important; }
+.ant-table-tbody > tr.tree-depth-3:hover > td { background: @tree-depth-3-hover !important; }
+.ant-table-tbody > tr.tree-depth-4:hover > td { background: @tree-depth-4-hover !important; }
+.ant-table-tbody > tr.tree-depth-5:hover > td { background: @tree-depth-5-hover !important; }
+
+/* 展开的树块：细边框 + 圆角质感 */
+.ant-table-tbody > tr.tree-block-start > td { border-top: 1px solid @tree-block-border; }
+.ant-table-tbody > tr.tree-block-end > td { border-bottom: 1px solid @tree-block-border; }
+.ant-table-tbody > tr.tree-block-member > td:first-child { border-left: 1px solid @tree-block-border; }
+.ant-table-tbody > tr.tree-block-member > td:last-child { border-right: 1px solid @tree-block-border; }
+.ant-table-tbody > tr.tree-block-start > td:first-child { border-top-left-radius: @radius-md; }
+.ant-table-tbody > tr.tree-block-start > td:last-child { border-top-right-radius: @radius-md; }
+.ant-table-tbody > tr.tree-block-end > td:first-child { border-bottom-left-radius: @radius-md; }
+.ant-table-tbody > tr.tree-block-end > td:last-child { border-bottom-right-radius: @radius-md; }
+
+/* 拖拽排序 */
+.drag-handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  color: @drag-handle-color;
+  font-size: 15px;
+  user-select: none;
+  transition: color 0.2s;
+}
+
+.drag-handle:hover {
+  color: @drag-handle-hover;
+}
+
+.drag-handle.is-disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
+}
+
+.drag-handle.is-disabled:hover {
+  color: @drag-handle-color;
+}
+
+.ant-table-row.drag-ghost > td {
+  opacity: 0.4;
+}
+
+.ant-table-row.drag-chosen > td {
+  box-shadow: inset 0 0 0 1px rgba(30, 58, 95, 0.18);
+}
+
+.table-total {
+  margin-top: @spacing-sm;
+  text-align: right;
+  color: @text-secondary;
+  font-size: @font-size-sm;
+}
+
+.ant-btn {
+  height: @btn-height;
+  padding: 0 @btn-padding-x;
+  border-radius: @radius-sm;
+  font-size: @font-size-base;
+}
+
+.ant-btn-primary {
+  background: @color-primary;
+  border-color: @color-primary;
+}
+
+.ant-btn-primary:hover {
+  background: @color-primary-hover !important;
+  border-color: @color-primary-hover !important;
+}
+
+.ant-input, .ant-input-number, .ant-picker, .ant-select-selector {
+  border-radius: @radius-sm;
+  border-color: @border-color;
+}
+
+.ant-input:hover, .ant-input-number:hover, .ant-picker:hover .ant-select-selector:hover {
+  border-color: @color-primary;
+}
+
+.ant-input:focus, .ant-input-number-focused, .ant-picker-focused, .ant-select-focused .ant-select-selector {
+  border-color: @color-primary;
+  box-shadow: 0 0 0 2px rgba(30, 58, 95, 0.12);
+}
+
+.ant-modal-content, .ant-card {
+  border-radius: @radius-md;
+}
+
+.ant-card {
+  box-shadow: @shadow-card;
+}
+
+.ant-modal-content {
+  box-shadow: @shadow-modal;
+}
+
+.ant-tag {
+  border-radius: @radius-sm;
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 12mm 15mm;
+  }
+
+  .ant-layout-sider, .ant-breadcrumb, .page-toolbar, .ant-pagination,
+  .ant-btn, .ant-tabs-nav, .ant-input-search, .no-print {
+    display: none !important;
+  }
+
+  .page-container, .ant-card, .ant-layout-content {
+    padding: 0 !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    background: white !important;
+  }
+
+  .ant-card .ant-card-body {
+    padding: 0 !important;
+  }
+
+  .ant-table-thead > tr > th {
+    display: table-header-group;
+  }
+
+  .ant-table-tbody > tr {
+    page-break-inside: avoid;
+  }
+
+  body {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+}

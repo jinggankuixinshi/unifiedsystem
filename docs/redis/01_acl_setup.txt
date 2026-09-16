@@ -1,0 +1,31 @@
+# =============================================================================
+# UnifiedSystem Redis 账户初始化（Redis 7.x ACL）
+# 三账户模型：redis_admin / redis_ops / redis_app
+#
+# 执行方式（一次性的，ACL 自动持久化到 redis.conf）：
+#   方式一：redis-cli < docs\redis\01_acl_setup.txt
+#   方式二：redis-cli 后逐行粘贴
+#
+# 密码通过环境变量传入，请先执行：
+#   SET REDIS_ADMIN_PWD=你的管理员密码
+#   SET REDIS_OPS_PWD=你的运维密码
+#   SET REDIS_APP_PWD=你的应用密码
+# =============================================================================
+
+# --- 删除旧账户 ---
+ACL DELUSER redis_admin
+ACL DELUSER redis_ops
+ACL DELUSER redis_app
+
+# --- 管理员：全部命令 ---
+ACL SETUSER redis_admin ON >%REDIS_ADMIN_PWD% ~* +@all
+
+# --- 运维账户：读写全部数据类型，禁止 flushdb/config/shutdown ---
+ACL SETUSER redis_ops ON >%REDIS_OPS_PWD% ~* +@read +@write +@hash +@list +@string +@set +@sortedset -flushdb -flushall -config -shutdown
+
+# --- 应用账户：最小读写，额外禁止 keys/scan/monitor ---
+ACL SETUSER redis_app ON >%REDIS_APP_PWD% ~* +@read +@write +@hash +@string +@set -flushdb -flushall -config -shutdown -keys -scan -monitor
+
+# --- 持久化 + 验证 ---
+ACL SAVE
+ACL LIST
