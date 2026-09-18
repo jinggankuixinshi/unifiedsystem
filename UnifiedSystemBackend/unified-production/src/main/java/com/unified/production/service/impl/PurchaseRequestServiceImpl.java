@@ -68,7 +68,9 @@ public class PurchaseRequestServiceImpl extends ServiceImpl<ProdPurchaseRequestM
             itemMapper.insert(item);
         }
 
-        workflowEngine.startWorkflow(WorkflowConstants.BusinessType.PURCHASE_REQUEST.getCode(), request.getId());
+        java.util.Map<String, Object> metrics = new java.util.HashMap<>();
+        metrics.put("amount", total);
+        workflowEngine.startWorkflow(WorkflowConstants.BusinessType.PURCHASE_REQUEST.getCode(), request.getId(), request.getApplicantId(), metrics);
         log.info("采购申请已创建: requestNo={}, totalAmount={}, userId={}", request.getRequestNo(), total, request.getApplicantId());
         return request;
     }

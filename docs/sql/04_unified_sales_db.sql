@@ -56,6 +56,7 @@ CREATE TABLE sal_sales_order (
     delivery_date DATE COMMENT '交货日期',
     warranty_terms VARCHAR(500) DEFAULT '' COMMENT '质保条款',
     price_anomaly_level INT DEFAULT 0 COMMENT '价格异常等级 0正常 1轻度 2中度 3重度',
+    low_price_reason VARCHAR(500) DEFAULT '' COMMENT '低价特批理由（中度异常必填）',
     approval_status INT DEFAULT 0 COMMENT '审批状态 0待审 1通过 2驳回',
     create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
     update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

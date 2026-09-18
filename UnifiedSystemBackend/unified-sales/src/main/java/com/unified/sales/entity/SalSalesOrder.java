@@ -21,5 +21,6 @@ public class SalSalesOrder extends BaseEntity {
     private LocalDate deliveryDate;
     private String warrantyTerms;
     private Integer priceAnomalyLevel;
+    private String lowPriceReason;
     private Integer approvalStatus;
 }

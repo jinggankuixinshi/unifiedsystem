@@ -15,6 +15,7 @@ public class SysDepartmentDTO {
     private Long parentId;
 
     private String leader;
+    private Long leaderId;
     private String phone;
     private Integer status;
 }

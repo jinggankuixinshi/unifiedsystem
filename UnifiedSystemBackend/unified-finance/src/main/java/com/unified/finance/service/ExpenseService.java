@@ -21,7 +21,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Service
@@ -51,7 +53,9 @@ public class ExpenseService extends ServiceImpl<FinExpenseMapper, FinExpense> {
             itemMapper.insert(item);
         }
 
-        workflowEngine.startWorkflow(WorkflowConstants.BusinessType.EXPENSE.getCode(), expense.getId());
+        Map<String, Object> metrics = new HashMap<>();
+        metrics.put("amount", total);
+        workflowEngine.startWorkflow(WorkflowConstants.BusinessType.EXPENSE.getCode(), expense.getId(), expense.getApplicantId(), metrics);
         log.info("费用报销已提交: expenseNo={}, total={}, type={}", expense.getExpenseNo(), total, expense.getExpenseType());
         return expense;
     }

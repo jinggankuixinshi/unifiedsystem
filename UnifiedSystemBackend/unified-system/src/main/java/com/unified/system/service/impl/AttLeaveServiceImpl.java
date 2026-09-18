@@ -6,6 +6,8 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.unified.common.exception.BusinessException;
 import com.unified.common.exception.ErrorCode;
+import com.unified.common.workflow.WorkflowConstants;
+import com.unified.common.workflow.WorkflowEngine;
 import com.unified.system.dto.AttLeaveDTO;
 import com.unified.system.entity.AttLeave;
 import com.unified.system.mapper.AttLeaveMapper;
@@ -24,7 +26,10 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class AttLeaveServiceImpl extends ServiceImpl<AttLeaveMapper, AttLeave> implements AttLeaveService {
 
+    private final WorkflowEngine workflowEngine;
+
     @Override
+    @org.springframework.transaction.annotation.Transactional(rollbackFor = Exception.class)
     public AttLeaveVO apply(Long userId, AttLeaveDTO dto) {
         if (dto.getEndTime() != null && dto.getStartTime() != null
                 && dto.getEndTime().isBefore(dto.getStartTime())) {
@@ -37,6 +42,7 @@ public class AttLeaveServiceImpl extends ServiceImpl<AttLeaveMapper, AttLeave> i
         entity.setApprovalStatus(0);
         save(entity);
 
+        workflowEngine.startWorkflow(WorkflowConstants.BusinessType.LEAVE.getCode(), entity.getId(), userId, java.util.Collections.emptyMap());
         log.info("请假申请已提交: userId={}, type={}, duration={}", userId, dto.getLeaveType(), dto.getDuration());
         return toVO(entity);
     }

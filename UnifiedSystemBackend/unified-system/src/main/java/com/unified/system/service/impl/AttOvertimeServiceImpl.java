@@ -6,6 +6,8 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.unified.common.exception.BusinessException;
 import com.unified.common.exception.ErrorCode;
+import com.unified.common.workflow.WorkflowConstants;
+import com.unified.common.workflow.WorkflowEngine;
 import com.unified.system.dto.AttOvertimeDTO;
 import com.unified.system.entity.AttOvertime;
 import com.unified.system.mapper.AttOvertimeMapper;
@@ -24,7 +26,10 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class AttOvertimeServiceImpl extends ServiceImpl<AttOvertimeMapper, AttOvertime> implements AttOvertimeService {
 
+    private final WorkflowEngine workflowEngine;
+
     @Override
+    @org.springframework.transaction.annotation.Transactional(rollbackFor = Exception.class)
     public AttOvertimeVO apply(Long userId, AttOvertimeDTO dto) {
         if (dto.getEndTime() != null && dto.getStartTime() != null
                 && dto.getEndTime().isBefore(dto.getStartTime())) {
@@ -37,6 +42,7 @@ public class AttOvertimeServiceImpl extends ServiceImpl<AttOvertimeMapper, AttOv
         entity.setApprovalStatus(0);
         save(entity);
 
+        workflowEngine.startWorkflow(WorkflowConstants.BusinessType.OVERTIME.getCode(), entity.getId(), userId, java.util.Collections.emptyMap());
         log.info("加班申请已提交: userId={}, duration={}", userId, dto.getDuration());
         return toVO(entity);
     }

@@ -6,11 +6,13 @@ import type { UserInfo } from '@/api/modules/auth'
 export const useUserStore = defineStore('user', () => {
   const token = ref<string>(localStorage.getItem('token') || '')
   const userInfo = ref<UserInfo | null>(null)
+  const roles = ref<string[]>([])
   const permissions = ref<string[]>([])
 
   async function fetchUserInfo(): Promise<UserInfo> {
     const res = await request.get('/auth/user-info') as any
     userInfo.value = res.data
+    roles.value = res.data?.roles || []
     permissions.value = res.data?.permissions || ['*']
     return res.data
   }
@@ -32,9 +34,10 @@ export const useUserStore = defineStore('user', () => {
     try { await request.post('/auth/logout') } catch {}
     token.value = ''
     userInfo.value = null
+    roles.value = []
     permissions.value = []
     localStorage.removeItem('token')
   }
 
-  return { token, userInfo, permissions, fetchUserInfo, setToken, hasPermission, logout }
+  return { token, userInfo, roles, permissions, fetchUserInfo, setToken, hasPermission, logout }
 })

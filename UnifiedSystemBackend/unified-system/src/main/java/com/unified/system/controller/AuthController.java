@@ -29,6 +29,7 @@ public class AuthController {
     private final SysUserRoleMapper userRoleMapper;
     private final SysRoleResourceMapper roleResourceMapper;
     private final SysResourceMapper resourceMapper;
+    private final SysRoleMapper roleMapper;
 
     @PostMapping("/login")
     public Result<Map<String, Object>> login(@Valid @RequestBody LoginDTO loginDTO) {
@@ -45,8 +46,21 @@ public class AuthController {
         info.put("username", user.getUsername());
         info.put("realName", user.getRealName());
         info.put("deptId", user.getDeptId());
+        info.put("roles", loadRoles(user.getId()));
         info.put("permissions", loadPermissions(user.getId()));
         return Result.ok(info);
+    }
+
+    private List<String> loadRoles(Long userId) {
+        List<Long> roleIds = userRoleMapper.selectList(
+                        new LambdaQueryWrapper<SysUserRole>().eq(SysUserRole::getUserId, userId))
+                .stream().map(SysUserRole::getRoleId).collect(Collectors.toList());
+        if (roleIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return roleMapper.selectBatchIds(roleIds).stream()
+                .map(SysRole::getRoleCode)
+                .collect(Collectors.toList());
     }
 
     @PostMapping("/logout")

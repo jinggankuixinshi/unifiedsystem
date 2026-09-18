@@ -54,6 +54,10 @@
         <a-form-item label="质保条款">
           <a-input v-model:value="warranty" />
         </a-form-item>
+        <a-form-item label="低价特批理由">
+          <a-textarea v-model:value="lowPriceReason" :rows="2"
+            placeholder="中度及以上价格异常（低于均价70%）时必填，其余情况可留空" />
+        </a-form-item>
       </a-form>
       <a-divider>报单明细</a-divider>
       <a-table :columns="itemCols" :data-source="items" size="small" row-key="tempId" :pagination="false">
@@ -120,6 +124,7 @@ const customerId = ref<number>()
 const paymentMethod = ref('bank')
 const deliveryDate = ref()
 const warranty = ref('')
+const lowPriceReason = ref('')
 const items = ref<any[]>([])
 const customerOptions = ref<Array<{ label: string; value: number }>>([])
 const productOptions = ref<Array<{ label: string; value: number }>>([])
@@ -151,7 +156,7 @@ async function fetchOptions() {
 }
 
 function handleTableChange(pag: any) { current.value = pag.current; pageSize.value = pag.pageSize; fetchData() }
-function openCreate() { items.value = []; modalVisible.value = true }
+function openCreate() { items.value = []; lowPriceReason.value = ''; modalVisible.value = true }
 function viewDetail(record: any) { message.info('详情功能开发中') }
 
 async function handleSubmit() {
@@ -164,7 +169,8 @@ async function handleSubmit() {
       customerId: customerId.value,
       paymentMethod: paymentMethod.value,
       deliveryDate: deliveryDate.value ? dayjs(deliveryDate.value).format('YYYY-MM-DD') : null,
-      warrantyTerms: warranty.value
+      warrantyTerms: warranty.value,
+      lowPriceReason: lowPriceReason.value || ''
     }
     const orderItems = items.value.map(i => ({
       productId: i.productId, specification: i.specification,

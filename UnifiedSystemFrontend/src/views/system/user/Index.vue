@@ -10,9 +10,13 @@
           @search="handleSearch"
           @change="handleSearch"
         />
-        <a-button type="primary" @click="openCreate">
+        <a-button v-if="isAdmin" type="primary" @click="openCreate">
           <template #icon><PlusOutlined /></template>
           新建用户
+        </a-button>
+        <a-button v-else type="primary" @click="openHrOp">
+          <template #icon><PlusOutlined /></template>
+          账号操作
         </a-button>
       </a-space>
     </div>
@@ -32,12 +36,13 @@
               </a-tag>
             </template>
             <template v-if="column.key === 'action'">
-              <a-space>
+              <a-space v-if="isAdmin">
                 <a @click="openEdit(record)">编辑</a>
                 <a-popconfirm title="确认删除该用户？" @confirm="handleDelete(record.id)">
                   <a class="danger-link">删除</a>
                 </a-popconfirm>
               </a-space>
+              <span v-else>-</span>
             </template>
           </template>
         </a-table>
@@ -82,6 +87,44 @@
         </a-form-item>
       </a-form>
     </a-modal>
+
+    <a-modal v-model:open="hrOpVisible" title="账号操作（提交审批）" @ok="submitHrOp"
+      :confirm-loading="submitting" :maskClosable="false" width="560px">
+      <a-form :label-col="{ span: 6 }">
+        <a-form-item label="操作类型">
+          <a-radio-group v-model:value="hrOpForm.opType">
+            <a-radio value="register">注册</a-radio>
+            <a-radio value="enable">启用</a-radio>
+            <a-radio value="disable">禁用</a-radio>
+            <a-radio value="delete">删除</a-radio>
+          </a-radio-group>
+        </a-form-item>
+        <template v-if="hrOpForm.opType === 'register'">
+          <a-form-item label="登录账号">
+            <a-input v-model:value="hrOpForm.username" placeholder="初始密码为 账号+123" />
+          </a-form-item>
+          <a-form-item label="姓名">
+            <a-input v-model:value="hrOpForm.realName" />
+          </a-form-item>
+          <a-form-item label="所属部门">
+            <a-tree-select v-model:value="hrOpForm.deptId" :tree-data="deptTree"
+              :field-names="{ children: 'children', label: 'deptName', value: 'id' }"
+              tree-default-expand-all placeholder="请选择部门" style="width:100%" />
+          </a-form-item>
+          <a-form-item label="手机号">
+            <a-input v-model:value="hrOpForm.phone" />
+          </a-form-item>
+          <a-form-item label="邮箱">
+            <a-input v-model:value="hrOpForm.email" />
+          </a-form-item>
+        </template>
+        <a-form-item v-else label="目标用户">
+          <a-select v-model:value="hrOpForm.targetUserId" :options="userOptions" show-search
+            :filter-option="filterUser" placeholder="选择用户" style="width:100%" />
+        </a-form-item>
+        <a-alert type="info" show-icon message="提交后进入审批流程，审批通过后自动生效" />
+      </a-form>
+    </a-modal>
   </div>
 </template>
 
@@ -90,6 +133,10 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { PlusOutlined } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import request from '@/api/request'
+import { useUserStore } from '@/stores/user'
+
+const userStore = useUserStore()
+const isAdmin = computed(() => (userStore.roles || []).includes('admin'))
 
 const loading = ref(false)
 const keyword = ref('')
@@ -97,6 +144,51 @@ const current = ref(1)
 const pageSize = ref(10)
 const total = ref(0)
 const dataSource = ref<any[]>([])
+
+const hrOpVisible = ref(false)
+const hrOpForm = reactive<any>({
+  opType: 'register', targetUserId: null,
+  username: '', realName: '', deptId: null, phone: '', email: ''
+})
+const userOptions = ref<Array<{ label: string; value: number }>>([])
+
+function openHrOp() {
+  hrOpForm.opType = 'register'; hrOpForm.targetUserId = null
+  hrOpForm.username = ''; hrOpForm.realName = ''; hrOpForm.deptId = null
+  hrOpForm.phone = ''; hrOpForm.email = ''
+  hrOpVisible.value = true
+}
+
+function filterUser(input: string, option: any) {
+  return String(option.label).toLowerCase().includes(input.toLowerCase())
+}
+
+async function fetchUserOptions() {
+  try {
+    const res = await request.get('/system/users', { params: { pageNum: 1, pageSize: 200 } }) as any
+    userOptions.value = (res.data?.records || []).map((u: any) => ({
+      label: `${u.realName || u.username}（${u.username}）`,
+      value: u.id
+    }))
+  } catch { }
+}
+
+async function submitHrOp() {
+  if (submitting.value) return
+  if (hrOpForm.opType === 'register'
+      && (!hrOpForm.username || !hrOpForm.realName || !hrOpForm.deptId)) {
+    message.warning('请完整填写注册信息'); return
+  }
+  if (hrOpForm.opType !== 'register' && !hrOpForm.targetUserId) {
+    message.warning('请选择目标用户'); return
+  }
+  submitting.value = true
+  try {
+    const res = await request.post('/hr/account-ops', hrOpForm) as any
+    message.success(res.message || '已提交')
+    hrOpVisible.value = false
+  } catch { } finally { submitting.value = false }
+}
 
 const columns = [
   { title: '用户名', dataIndex: 'username', key: 'username' },
@@ -216,6 +308,7 @@ async function handleDelete(id: number) {
 onMounted(() => {
   fetchData()
   fetchDeptTree()
+  fetchUserOptions()
 })
 </script>
 

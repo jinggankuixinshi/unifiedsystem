@@ -11,10 +11,12 @@ import lombok.EqualsAndHashCode;
 public class WfNodeTemplate extends BaseEntity {
 
     private Long templateId;
+    private Integer branchNo;
     private Integer nodeOrder;
     private String approverType;
     private Long approverId;
     private String conditionType;
     private String conditionConfig;
+    private Integer nodeLevel;
     private String nodeName;
 }

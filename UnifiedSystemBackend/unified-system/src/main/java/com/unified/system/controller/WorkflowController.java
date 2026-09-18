@@ -14,6 +14,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/workflow")
@@ -73,8 +74,35 @@ public class WorkflowController {
         return Result.ok(recordService.listByInstanceId(id));
     }
 
+    /** 待办（当前节点由我审批） */
+    @GetMapping("/pending")
+    @PreAuthorize("isAuthenticated()")
+    public Result<List<WfInstance>> pendingList(@RequestParam(required = false) String businessType) {
+        List<WfInstance> list = workflowEngine.listPendingByApprover(UserContext.get().getUserId());
+        if (businessType != null && !businessType.isEmpty()) {
+            list = list.stream()
+                    .filter(i -> businessType.equals(i.getBusinessType()))
+                    .collect(Collectors.toList());
+        }
+        return Result.ok(list);
+    }
+
+    /** 已办（我操作过的） */
+    @GetMapping("/done")
+    @PreAuthorize("isAuthenticated()")
+    public Result<List<WfInstance>> doneList() {
+        return Result.ok(workflowEngine.listDoneByApprover(UserContext.get().getUserId()));
+    }
+
+    /** 我的申请 */
+    @GetMapping("/my-applications")
+    @PreAuthorize("isAuthenticated()")
+    public Result<List<WfInstance>> myApplications() {
+        return Result.ok(workflowEngine.listMyApplications(UserContext.get().getUserId()));
+    }
+
     @PostMapping("/instances/{id}/approve")
-    @PreAuthorize("hasAnyRole('admin', 'boss')")
+    @PreAuthorize("isAuthenticated()")
     public Result<?> approve(@PathVariable Long id, @RequestParam(defaultValue = "同意") String comment) {
         Long approverId = UserContext.get().getUserId();
         workflowEngine.approve(id, approverId, WorkflowConstants.ApprovalAction.APPROVE, comment);
@@ -82,7 +110,7 @@ public class WorkflowController {
     }
 
     @PostMapping("/instances/{id}/reject")
-    @PreAuthorize("hasAnyRole('admin', 'boss')")
+    @PreAuthorize("isAuthenticated()")
     public Result<?> reject(@PathVariable Long id, @RequestParam(defaultValue = "驳回") String comment) {
         Long approverId = UserContext.get().getUserId();
         workflowEngine.approve(id, approverId, WorkflowConstants.ApprovalAction.REJECT, comment);
@@ -90,19 +118,26 @@ public class WorkflowController {
     }
 
     @PostMapping("/instances/{id}/push-up")
-    @PreAuthorize("hasAnyRole('admin', 'boss')")
+    @PreAuthorize("isAuthenticated()")
     public Result<?> pushUp(@PathVariable Long id, @RequestParam(defaultValue = "上推审批") String comment) {
         Long approverId = UserContext.get().getUserId();
         workflowEngine.approve(id, approverId, WorkflowConstants.ApprovalAction.PUSH_UP, comment);
         return Result.ok();
     }
 
-    @GetMapping("/pending")
+    @PostMapping("/instances/{id}/delegate")
     @PreAuthorize("isAuthenticated()")
-    public Result<?> pendingList(@RequestParam(required = false) String businessType) {
-        if (businessType != null && !businessType.isEmpty()) {
-            return Result.ok(instanceService.listByBusinessType(businessType));
-        }
-        return Result.ok(instanceService.list());
+    public Result<?> delegate(@PathVariable Long id,
+                              @RequestParam Long targetUserId,
+                              @RequestParam(defaultValue = "") String comment) {
+        workflowEngine.delegate(id, UserContext.get().getUserId(), targetUserId, comment);
+        return Result.ok();
+    }
+
+    @PostMapping("/instances/{id}/cancel")
+    @PreAuthorize("isAuthenticated()")
+    public Result<?> cancel(@PathVariable Long id) {
+        workflowEngine.cancel(id, UserContext.get().getUserId());
+        return Result.ok();
     }
 }

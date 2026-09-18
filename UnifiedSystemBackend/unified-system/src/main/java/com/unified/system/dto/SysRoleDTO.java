@@ -12,6 +12,7 @@ public class SysRoleDTO {
     @NotBlank(message = "角色编码不能为空")
     private String roleCode;
 
+    private Integer level;
     private String description;
     private Integer status;
 }

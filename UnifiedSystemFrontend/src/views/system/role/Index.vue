@@ -62,6 +62,9 @@
         <a-form-item label="角色编码" name="roleCode">
           <a-input v-model:value="formState.roleCode" :disabled="isEdit" />
         </a-form-item>
+        <a-form-item label="等级" name="level">
+          <a-input-number v-model:value="formState.level" :min="0" :max="1000" style="width:100%" />
+        </a-form-item>
         <a-form-item label="状态" name="status">
           <a-switch v-model:checked="statusChecked" />
         </a-form-item>
@@ -96,6 +99,7 @@ const columns = [
   { title: '', key: 'drag', width: 44, align: 'center' as const },
   { title: '角色名称', dataIndex: 'roleName' },
   { title: '角色编码', dataIndex: 'roleCode' },
+  { title: '等级', dataIndex: 'level', width: 70 },
   { title: '状态', key: 'status', width: 80 },
   { title: '创建时间', dataIndex: 'createTime', width: 180 },
   { title: '操作', key: 'action', width: 120 }
@@ -109,7 +113,7 @@ const isEdit = ref(false)
 const editId = ref<number>()
 const statusChecked = ref(true)
 
-const formState = reactive({ roleName: '', roleCode: '', status: 1, description: '' })
+const formState = reactive({ roleName: '', roleCode: '', level: 0, status: 1, description: '' })
 const rules = {
   roleName: [{ required: true, message: '请输入角色名称' }],
   roleCode: [{ required: true, message: '请输入角色编码' }],
@@ -158,13 +162,14 @@ function handleTableChange(pag: any) { current.value = pag.current; pageSize.val
 
 function openCreate() {
   isEdit.value = false
-  formState.roleName = ''; formState.roleCode = ''; formState.description = ''
+  formState.roleName = ''; formState.roleCode = ''; formState.level = 0; formState.description = ''
   statusChecked.value = true; modalVisible.value = true
 }
 
 function openEdit(r: any) {
   isEdit.value = true; editId.value = r.id
   formState.roleName = r.roleName; formState.roleCode = r.roleCode
+  formState.level = r.level || 0
   formState.description = r.description || ''; statusChecked.value = r.status === 1; modalVisible.value = true
 }
 

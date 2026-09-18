@@ -1,3 +1,18 @@
+-- =============================================================================
+-- UnifiedSystem 核心库（unified_system_db）全量初始化脚本 v1.2
+-- 内容：RBAC 权限 / 字典 / 消息 / 审计 / 审批工作流（分支+层级）/ 考勤 / 人事账号操作 / 序列号
+--
+-- 变更历史：
+--   v1.0  初始版本（用户/角色/资源/部门/字典/消息/审计/工作流基础/考勤）
+--   v1.1  Phase 1   审批分支 branch_no、实例发起人 applicant_id、委托字段、部门负责人 leader_id
+--   v1.2  Phase 1.5 角色等级 level、人事部门与角色（hr_manager/hr_staff）、请假/加班按层级矩阵、
+--                   节点审批层级 node_level、人事账号操作单 hr_account_op
+--
+-- 说明：本脚本为全量初始化脚本，已包含 06/07 增量脚本的全部内容；
+--       新环境直接按顺序执行 00 -> 01 即可；存量库原地升级使用 06/07 增量脚本（仅历史环境）。
+-- 执行：mysql --default-character-set=utf8mb4 -u root -p < 01_unified_system_db.sql
+-- =============================================================================
+
 DROP DATABASE IF EXISTS unified_system_db;
 CREATE DATABASE unified_system_db DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE unified_system_db;
@@ -12,6 +27,7 @@ CREATE TABLE sys_department (
     ancestors VARCHAR(500) DEFAULT '' COMMENT '祖级列表',
     sort_order INT DEFAULT 0 COMMENT '排序',
     leader VARCHAR(32) DEFAULT '' COMMENT '负责人',
+    leader_id BIGINT COMMENT '负责人用户ID（DEPT_MANAGER 审批解析用）',
     phone VARCHAR(32) DEFAULT '' COMMENT '联系电话',
     status TINYINT DEFAULT 1 COMMENT '状态 1启用0禁用',
     create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -23,18 +39,20 @@ CREATE TABLE sys_department (
     INDEX idx_parent (parent_id)
 ) COMMENT '部门表';
 
-INSERT INTO sys_department (id, dept_name, dept_code, parent_id, ancestors, sort_order, leader, status)
-VALUES (1, '总公司', 'root', 0, '', 0, '老板', 1),
-       (2, '生产部', 'production', 1, '0,1', 1, '生产主管', 1),
-       (3, '物流部', 'logistics', 1, '0,1', 2, '物流经理', 1),
-       (4, '销售部', 'sales', 1, '0,1', 3, '销售经理', 1),
-       (5, '财务部', 'finance', 1, '0,1', 4, '财务经理', 1);
+INSERT INTO sys_department (id, dept_name, dept_code, parent_id, ancestors, sort_order, leader, leader_id, status)
+VALUES (1, '总公司', 'root', 0, '', 0, '老板', 2, 1),
+       (2, '生产部', 'production', 1, '0,1', 1, '生产主管', 3, 1),
+       (3, '物流部', 'logistics', 1, '0,1', 2, '物流经理', 7, 1),
+       (4, '销售部', 'sales', 1, '0,1', 3, '销售经理', 9, 1),
+       (5, '财务部', 'finance', 1, '0,1', 4, '财务经理', 11, 1),
+       (6, '人事部', 'hr', 1, '0,1', 5, '人事经理', 13, 1);
 
 CREATE TABLE sys_role (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     role_name VARCHAR(50) NOT NULL COMMENT '角色名称',
     role_code VARCHAR(50) NOT NULL COMMENT '角色编码',
     description VARCHAR(255) DEFAULT '' COMMENT '描述',
+    level INT NOT NULL DEFAULT 0 COMMENT '角色等级（审批按层级推进：总经理100/人事高管80/部门高管60/专员30/员工20）',
     status TINYINT DEFAULT 1 COMMENT '状态',
     sort_order INT DEFAULT 0 COMMENT '排序',
     create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -45,19 +63,21 @@ CREATE TABLE sys_role (
     UNIQUE KEY uk_role_code (role_code)
 ) COMMENT '角色表';
 
-INSERT INTO sys_role (id, role_name, role_code, description, sort_order) VALUES
-(1, '系统管理员', 'admin', '系统最高权限', 0),
-(2, '老板/总经理', 'boss', '终审审批', 1),
-(3, '生产主管', 'prod_manager', '生产管理', 2),
-(4, '生产工人', 'prod_worker', '生产执行', 3),
-(5, '仓库管理员', 'warehouse_keeper', '仓库管理（生产仓）', 4),
-(6, '物流操作员', 'logistics_operator', '物流操作', 5),
-(7, '物流经理', 'logistics_manager', '物流管理', 6),
-(8, '销售员', 'salesperson', '销售报单', 7),
-(9, '销售经理', 'sales_manager', '销售管理', 8),
-(10, '财务专员', 'finance_staff', '财务操作', 9),
-(11, '财务经理', 'finance_manager', '财务管理', 10),
-(12, '出纳', 'cashier', '付款打款', 11);
+INSERT INTO sys_role (id, role_name, role_code, description, level, sort_order) VALUES
+(1, '系统管理员', 'admin', '系统最高权限（审批兜底）', 90, 0),
+(2, '老板/总经理', 'boss', '终审审批', 100, 1),
+(3, '生产主管', 'prod_manager', '生产管理（部门高管）', 60, 2),
+(4, '生产工人', 'prod_worker', '生产执行', 20, 3),
+(5, '仓库管理员', 'warehouse_keeper', '仓库管理（生产仓）', 30, 4),
+(6, '物流操作员', 'logistics_operator', '物流操作', 30, 5),
+(7, '物流经理', 'logistics_manager', '物流管理（部门高管）', 60, 6),
+(8, '销售员', 'salesperson', '销售报单', 20, 7),
+(9, '销售经理', 'sales_manager', '销售管理（部门高管）', 60, 8),
+(10, '财务专员', 'finance_staff', '财务操作', 30, 9),
+(11, '财务经理', 'finance_manager', '财务管理（部门高管）', 60, 10),
+(12, '出纳', 'cashier', '付款打款', 30, 11),
+(13, '人事经理', 'hr_manager', '人事管理（人事高管）', 80, 12),
+(14, '人事专员', 'hr_staff', '账号操作与人事事务', 30, 13);
 
 CREATE TABLE sys_user (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -96,7 +116,9 @@ INSERT INTO sys_user (id, username, password, real_name, dept_id, status) VALUES
 (9, 'salesmanager', '$2a$10$JwLoEDJAsHLEBEaweBu3SelJ0nPaxrJaqkare9ywKhEmQBOECYEX.', '销售经理', 4, 1),
 (10, 'finance', '$2a$10$HfkwSlsJiQnqhaTa1F/R7.5bZZTwSr9xIx3n2U/OI07wy.GZ15YN2', '财务专员', 5, 1),
 (11, 'finmanager', '$2a$10$BPHUcvnK72ToBLfQJvgrg.Ms4yQ90VYdx6FclndM/N/PYMaR1G5Eu', '财务经理', 5, 1),
-(12, 'cashier', '$2a$10$GEP6wVDdrnbZx47tCkzQFujcjmhwS2i2yltu0ouG9J0/NBtpmuch2', '出纳', 5, 1);
+(12, 'cashier', '$2a$10$GEP6wVDdrnbZx47tCkzQFujcjmhwS2i2yltu0ouG9J0/NBtpmuch2', '出纳', 5, 1),
+(13, 'hrmanager', '$2a$10$.NnmlaBVmlPdGfNTHviGcOhzd.7JfNxtkgQ86mRXle3K3yrxPS2QG', '人事经理', 6, 1),
+(14, 'hrstaff', '$2a$10$6hQ.o606TKoGQs7XYM/gbOKJJINKIKzjzzxWGHbT68d7fzPcrzPOi', '人事专员', 6, 1);
 
 -- ============================================================
 -- 用户-角色关联
@@ -126,7 +148,9 @@ INSERT INTO sys_user_role (user_id, role_id) VALUES
 (9, 9),
 (10, 10),
 (11, 11),
-(12, 12);
+(12, 12),
+(13, 13),
+(14, 14);
 
 -- ============================================================
 -- 资源权限表（菜单/按钮/API）
@@ -237,6 +261,11 @@ CREATE TABLE sys_role_resource (
 
 INSERT INTO sys_role_resource (role_id, resource_id)
 SELECT 1, id FROM sys_resource;
+
+-- 人事角色：系统管理目录(1) + 用户管理菜单(11)
+INSERT INTO sys_role_resource (role_id, resource_id) VALUES
+(13, 1), (13, 11),
+(14, 1), (14, 11);
 
 -- ============================================================
 -- 资源-部门可见性（部门级数据权限）
@@ -422,8 +451,9 @@ INSERT INTO wf_template (id, template_name, business_type, description, version)
 (2, '销售报单审批流程', 'sales_order', '销售报单审批流程，含价格异常检测分级', 1),
 (3, '调拨审批流程', 'transfer', '物流调拨审批流程，按调拨类型和价值分级', 1),
 (4, '费用报销审批流程', 'expense', '费用报销审批流程，按金额分级', 1),
-(5, '请假审批流程', 'leave', '员工请假审批流程', 1),
-(6, '加班审批流程', 'overtime', '员工加班审批流程', 1);
+(5, '请假审批流程', 'leave', '员工请假审批流程（按申请人层级：部门高管+人事 / 人事高管+总经理）', 1),
+(6, '加班审批流程', 'overtime', '加班审批流程（同请假矩阵）', 1),
+(7, '人事账号操作审批', 'hr_account_op', '账号注册/启用/禁用/删除审批，通过后自动生效', 1);
 
 -- ============================================================
 -- 审批节点模板
@@ -431,11 +461,13 @@ INSERT INTO wf_template (id, template_name, business_type, description, version)
 CREATE TABLE wf_node_template (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     template_id BIGINT NOT NULL COMMENT '模板ID',
+    branch_no INT NOT NULL DEFAULT 1 COMMENT '分支编号（同模板下按条件互斥，一条链一个分支）',
     node_order INT NOT NULL COMMENT '审批顺序',
-    approver_type VARCHAR(32) NOT NULL COMMENT '审批人类型 DEPT_MANAGER/ROLE/SPECIFIC_USER',
+    approver_type VARCHAR(32) NOT NULL COMMENT '审批人类型 DEPT_TOP/DEPT_MANAGER/ROLE/SPECIFIC_USER',
     approver_id BIGINT COMMENT '审批人/角色ID',
-    condition_type VARCHAR(32) DEFAULT 'NONE' COMMENT '条件类型 NONE/AMOUNT_RANGE/PERCENTAGE',
-    condition_config TEXT COMMENT '条件配置JSON',
+    condition_type VARCHAR(32) DEFAULT 'NONE' COMMENT '条件类型 NONE/AMOUNT_RANGE/PERCENTAGE/TYPE/APPLICANT_LEVEL',
+    condition_config TEXT COMMENT '条件配置JSON（min含/max不含；types为业务类型集合）',
+    node_level INT COMMENT '节点审批层级（上推判定用；空=按审批人解析）',
     node_name VARCHAR(100) NOT NULL COMMENT '节点名称',
     create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
     update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -443,85 +475,109 @@ CREATE TABLE wf_node_template (
     update_by BIGINT,
     deleted TINYINT DEFAULT 0,
     INDEX idx_template (template_id),
-    INDEX idx_node_order (template_id, node_order)
+    INDEX idx_node_order (template_id, node_order),
+    UNIQUE KEY uk_template_branch_order (template_id, branch_no, node_order)
 ) COMMENT '审批节点模板表';
 
--- 采购审批节点 (template_id=1, 按金额分级)
--- 小额 <5000: 财务专员
-INSERT INTO wf_node_template (template_id, node_order, approver_type, approver_id, condition_type, condition_config, node_name) VALUES
-(1, 1, 'ROLE', 10, 'AMOUNT_RANGE', '{"max":5000}', '财务专员审批');
--- 中额 5000-50000: 财务专员 → 财务经理
-INSERT INTO wf_node_template (template_id, node_order, approver_type, approver_id, condition_type, condition_config, node_name) VALUES
-(1, 1, 'ROLE', 10, 'AMOUNT_RANGE', '{"min":5000,"max":50000}', '财务专员审批'),
-(1, 2, 'ROLE', 11, 'NONE', '{}', '财务经理审批');
--- 大额 50000-200000: 财务专员 → 财务经理
-INSERT INTO wf_node_template (template_id, node_order, approver_type, approver_id, condition_type, condition_config, node_name) VALUES
-(1, 1, 'ROLE', 10, 'AMOUNT_RANGE', '{"min":50000,"max":200000}', '财务专员审批'),
-(1, 2, 'ROLE', 11, 'NONE', '{}', '财务经理审批');
--- 特大额 >200000: 财务专员 → 财务经理(前置) → 老板(终审)
-INSERT INTO wf_node_template (template_id, node_order, approver_type, approver_id, condition_type, condition_config, node_name) VALUES
-(1, 1, 'ROLE', 10, 'AMOUNT_RANGE', '{"min":200000}', '财务专员审批'),
-(1, 2, 'ROLE', 11, 'NONE', '{}', '财务经理前置审批'),
-(1, 3, 'ROLE', 2, 'NONE', '{}', '老板终审');
+-- 采购审批节点 (template_id=1, 按金额分级；区间 min 含 max 不含)
+-- 分支1 小额 <5000: 财务专员
+INSERT INTO wf_node_template (template_id, branch_no, node_order, approver_type, approver_id, condition_type, condition_config, node_level, node_name) VALUES
+(1, 1, 1, 'ROLE', 10, 'AMOUNT_RANGE', '{"max":5000}', 30, '财务专员审批');
+-- 分支2 中额 5000-50000: 财务专员 → 财务经理
+INSERT INTO wf_node_template (template_id, branch_no, node_order, approver_type, approver_id, condition_type, condition_config, node_level, node_name) VALUES
+(1, 2, 1, 'ROLE', 10, 'AMOUNT_RANGE', '{"min":5000,"max":50000}', 30, '财务专员审批'),
+(1, 2, 2, 'ROLE', 11, 'NONE', '{}', 60, '财务经理审批');
+-- 分支3 大额 50000-200000: 财务专员 → 财务经理
+INSERT INTO wf_node_template (template_id, branch_no, node_order, approver_type, approver_id, condition_type, condition_config, node_level, node_name) VALUES
+(1, 3, 1, 'ROLE', 10, 'AMOUNT_RANGE', '{"min":50000,"max":200000}', 30, '财务专员审批'),
+(1, 3, 2, 'ROLE', 11, 'NONE', '{}', 60, '财务经理审批');
+-- 分支4 特大额 ≥200000: 财务专员 → 财务经理(前置) → 老板(终审)
+INSERT INTO wf_node_template (template_id, branch_no, node_order, approver_type, approver_id, condition_type, condition_config, node_level, node_name) VALUES
+(1, 4, 1, 'ROLE', 10, 'AMOUNT_RANGE', '{"min":200000}', 30, '财务专员审批'),
+(1, 4, 2, 'ROLE', 11, 'NONE', '{}', 60, '财务经理前置审批'),
+(1, 4, 3, 'ROLE', 2, 'NONE', '{}', 100, '老板终审');
 
--- 销售报单审批节点 (template_id=2, 按价格偏离度分级)
--- 正常价格 ≥85%: 财务专员
-INSERT INTO wf_node_template (template_id, node_order, approver_type, approver_id, condition_type, condition_config, node_name) VALUES
-(2, 1, 'ROLE', 10, 'PERCENTAGE', '{"min":0.85}', '财务专员审批');
--- 轻度异常 <85%: 系统打标签, 财务专员
-INSERT INTO wf_node_template (template_id, node_order, approver_type, approver_id, condition_type, condition_config, node_name) VALUES
-(2, 1, 'ROLE', 10, 'PERCENTAGE', '{"min":0.70,"max":0.85}', '财务专员审批(系统打标签)');
--- 中度异常 <70%: 强制低价特批理由, 财务专员
-INSERT INTO wf_node_template (template_id, node_order, approver_type, approver_id, condition_type, condition_config, node_name) VALUES
-(2, 1, 'ROLE', 10, 'PERCENTAGE', '{"min":0.50,"max":0.70}', '财务专员审批(强制低价理由)');
--- 重度异常 <50%: 财务专员 → 老板终审
-INSERT INTO wf_node_template (template_id, node_order, approver_type, approver_id, condition_type, condition_config, node_name) VALUES
-(2, 1, 'ROLE', 10, 'PERCENTAGE', '{"max":0.50}', '财务专员审批'),
-(2, 2, 'ROLE', 2, 'NONE', '{}', '老板终审');
+-- 销售报单审批节点 (template_id=2, 按价格比 ratio=成交价/均价 分级；区间 min 含 max 不含)
+-- 分支1 正常价格 ratio≥0.85: 财务专员
+INSERT INTO wf_node_template (template_id, branch_no, node_order, approver_type, approver_id, condition_type, condition_config, node_level, node_name) VALUES
+(2, 1, 1, 'ROLE', 10, 'PERCENTAGE', '{"min":0.85}', 30, '财务专员审批');
+-- 分支2 轻度异常 0.70-0.85: 财务专员(系统打标签)
+INSERT INTO wf_node_template (template_id, branch_no, node_order, approver_type, approver_id, condition_type, condition_config, node_level, node_name) VALUES
+(2, 2, 1, 'ROLE', 10, 'PERCENTAGE', '{"min":0.70,"max":0.85}', 30, '财务专员审批(轻异常打标)');
+-- 分支3 中度异常 0.50-0.70: 财务专员(强制低价特批理由)
+INSERT INTO wf_node_template (template_id, branch_no, node_order, approver_type, approver_id, condition_type, condition_config, node_level, node_name) VALUES
+(2, 3, 1, 'ROLE', 10, 'PERCENTAGE', '{"min":0.50,"max":0.70}', 30, '财务专员审批(低价理由)');
+-- 分支4 重度异常 <0.50: 财务专员 → 老板终审
+INSERT INTO wf_node_template (template_id, branch_no, node_order, approver_type, approver_id, condition_type, condition_config, node_level, node_name) VALUES
+(2, 4, 1, 'ROLE', 10, 'PERCENTAGE', '{"max":0.50}', 30, '财务专员审批'),
+(2, 4, 2, 'ROLE', 2, 'NONE', '{}', 100, '老板终审');
 
--- 调拨审批节点 (template_id=3)
--- 常规调拨小额: 调入仓主管 → 调出仓主管
-INSERT INTO wf_node_template (template_id, node_order, approver_type, approver_id, condition_type, condition_config, node_name) VALUES
-(3, 1, 'ROLE', 7, 'AMOUNT_RANGE', '{"max":50000}', '调入仓主管审核'),
-(3, 2, 'ROLE', 7, 'NONE', '{}', '调出仓主管审批');
--- 常规调拨大额: 调入仓主管 → 调出仓主管 → 财务复核
-INSERT INTO wf_node_template (template_id, node_order, approver_type, approver_id, condition_type, condition_config, node_name) VALUES
-(3, 1, 'ROLE', 7, 'AMOUNT_RANGE', '{"min":50000}', '调入仓主管审核'),
-(3, 2, 'ROLE', 7, 'NONE', '{}', '调出仓主管审批'),
-(3, 3, 'ROLE', 11, 'NONE', '{}', '财务复核');
--- 特殊调拨(样品/报废/返修/赠送): 仓主管 → 财务 → 老板
-INSERT INTO wf_node_template (template_id, node_order, approver_type, approver_id, condition_type, condition_config, node_name) VALUES
-(3, 1, 'ROLE', 7, 'NONE', '{}', '仓主管审批'),
-(3, 2, 'ROLE', 11, 'NONE', '{}', '财务复核'),
-(3, 3, 'ROLE', 2, 'NONE', '{}', '老板终审');
+-- 调拨审批节点 (template_id=3；常规按金额分支，特殊类型按类型分支)
+-- 分支1 常规小额 <50000: 调入仓主管 → 调出仓主管
+INSERT INTO wf_node_template (template_id, branch_no, node_order, approver_type, approver_id, condition_type, condition_config, node_level, node_name) VALUES
+(3, 1, 1, 'ROLE', 7, 'AMOUNT_RANGE', '{"max":50000,"types":["normal"]}', 60, '调入仓主管审核'),
+(3, 1, 2, 'ROLE', 7, 'NONE', '{}', 60, '调出仓主管审批');
+-- 分支2 常规大额 ≥50000: 调入仓主管 → 调出仓主管 → 财务复核
+INSERT INTO wf_node_template (template_id, branch_no, node_order, approver_type, approver_id, condition_type, condition_config, node_level, node_name) VALUES
+(3, 2, 1, 'ROLE', 7, 'AMOUNT_RANGE', '{"min":50000,"types":["normal"]}', 60, '调入仓主管审核'),
+(3, 2, 2, 'ROLE', 7, 'NONE', '{}', 60, '调出仓主管审批'),
+(3, 2, 3, 'ROLE', 11, 'NONE', '{}', 60, '财务复核');
+-- 分支3 特殊调拨(样品/报废/返修/赠送): 仓主管 → 财务复核 → 老板终审
+INSERT INTO wf_node_template (template_id, branch_no, node_order, approver_type, approver_id, condition_type, condition_config, node_level, node_name) VALUES
+(3, 3, 1, 'ROLE', 7, 'TYPE', '{"types":["sample","scrap","repair","gift"]}', 60, '仓主管审批'),
+(3, 3, 2, 'ROLE', 11, 'NONE', '{}', 60, '财务复核'),
+(3, 3, 3, 'ROLE', 2, 'NONE', '{}', 100, '老板终审');
 
 -- 费用报销审批节点 (template_id=4, 按金额分级)
--- 小额: 部门经理 → 财务专员 → 出纳打款
-INSERT INTO wf_node_template (template_id, node_order, approver_type, approver_id, condition_type, condition_config, node_name) VALUES
-(4, 1, 'DEPT_MANAGER', NULL, 'AMOUNT_RANGE', '{"max":5000}', '部门经理审批'),
-(4, 2, 'ROLE', 10, 'NONE', '{}', '财务专员审批'),
-(4, 3, 'ROLE', 12, 'NONE', '{}', '出纳打款');
--- 中额 5000-20000: 部门经理 → 财务专员 → 财务经理 → 出纳打款
-INSERT INTO wf_node_template (template_id, node_order, approver_type, approver_id, condition_type, condition_config, node_name) VALUES
-(4, 1, 'DEPT_MANAGER', NULL, 'AMOUNT_RANGE', '{"min":5000,"max":20000}', '部门经理审批'),
-(4, 2, 'ROLE', 10, 'NONE', '{}', '财务专员审批'),
-(4, 3, 'ROLE', 11, 'NONE', '{}', '财务经理审批'),
-(4, 4, 'ROLE', 12, 'NONE', '{}', '出纳打款');
--- 大额 >20000: 部门经理 → 财务专员 → 财务经理 → 老板 → 出纳打款
-INSERT INTO wf_node_template (template_id, node_order, approver_type, approver_id, condition_type, condition_config, node_name) VALUES
-(4, 1, 'DEPT_MANAGER', NULL, 'AMOUNT_RANGE', '{"min":20000}', '部门经理审批'),
-(4, 2, 'ROLE', 10, 'NONE', '{}', '财务专员审批'),
-(4, 3, 'ROLE', 11, 'NONE', '{}', '财务经理审批'),
-(4, 4, 'ROLE', 2, 'NONE', '{}', '老板审批'),
-(4, 5, 'ROLE', 12, 'NONE', '{}', '出纳打款');
+-- 分支1 小额 <5000: 部门负责人 → 财务专员 → 出纳打款
+INSERT INTO wf_node_template (template_id, branch_no, node_order, approver_type, approver_id, condition_type, condition_config, node_level, node_name) VALUES
+(4, 1, 1, 'DEPT_MANAGER', NULL, 'AMOUNT_RANGE', '{"max":5000}', 60, '部门负责人审批'),
+(4, 1, 2, 'ROLE', 10, 'NONE', '{}', 30, '财务专员审批'),
+(4, 1, 3, 'ROLE', 12, 'NONE', '{}', 30, '出纳打款');
+-- 分支2 中额 5000-20000: 部门负责人 → 财务专员 → 财务经理 → 出纳打款
+INSERT INTO wf_node_template (template_id, branch_no, node_order, approver_type, approver_id, condition_type, condition_config, node_level, node_name) VALUES
+(4, 2, 1, 'DEPT_MANAGER', NULL, 'AMOUNT_RANGE', '{"min":5000,"max":20000}', 60, '部门负责人审批'),
+(4, 2, 2, 'ROLE', 10, 'NONE', '{}', 30, '财务专员审批'),
+(4, 2, 3, 'ROLE', 11, 'NONE', '{}', 60, '财务经理审批'),
+(4, 2, 4, 'ROLE', 12, 'NONE', '{}', 30, '出纳打款');
+-- 分支3 大额 ≥20000: 部门负责人 → 财务专员 → 财务经理 → 老板 → 出纳打款
+INSERT INTO wf_node_template (template_id, branch_no, node_order, approver_type, approver_id, condition_type, condition_config, node_level, node_name) VALUES
+(4, 3, 1, 'DEPT_MANAGER', NULL, 'AMOUNT_RANGE', '{"min":20000}', 60, '部门负责人审批'),
+(4, 3, 2, 'ROLE', 10, 'NONE', '{}', 30, '财务专员审批'),
+(4, 3, 3, 'ROLE', 11, 'NONE', '{}', 60, '财务经理审批'),
+(4, 3, 4, 'ROLE', 2, 'NONE', '{}', 100, '老板审批'),
+(4, 3, 5, 'ROLE', 12, 'NONE', '{}', 30, '出纳打款');
 
--- 请假审批节点 (template_id=5): 部门经理审批
-INSERT INTO wf_node_template (template_id, node_order, approver_type, approver_id, condition_type, condition_config, node_name) VALUES
-(5, 1, 'DEPT_MANAGER', NULL, 'NONE', '{}', '部门经理审批');
+-- 请假审批节点 (template_id=5, 按申请人层级分支：APPLICANT_LEVEL)
+-- 分支1 普通员工/专员 level<60: 部门最高管 → 人事专员
+INSERT INTO wf_node_template (template_id, branch_no, node_order, approver_type, approver_id, condition_type, condition_config, node_level, node_name) VALUES
+(5, 1, 1, 'DEPT_TOP', NULL, 'APPLICANT_LEVEL', '{"max":60}', 60, '部门最高管审批'),
+(5, 1, 2, 'ROLE', 14, 'NONE', '{}', 30, '人事专员审批');
+-- 分支2 部门高管 60≤level<80: 人事高管 → 总经理
+INSERT INTO wf_node_template (template_id, branch_no, node_order, approver_type, approver_id, condition_type, condition_config, node_level, node_name) VALUES
+(5, 2, 1, 'ROLE', 13, 'APPLICANT_LEVEL', '{"min":60,"max":80}', 80, '人事高管审批'),
+(5, 2, 2, 'ROLE', 2, 'NONE', '{}', 100, '总经理审批');
+-- 分支3 人事高管及以上 level≥80: 总经理
+INSERT INTO wf_node_template (template_id, branch_no, node_order, approver_type, approver_id, condition_type, condition_config, node_level, node_name) VALUES
+(5, 3, 1, 'ROLE', 2, 'APPLICANT_LEVEL', '{"min":80}', 100, '总经理审批');
 
--- 加班审批节点 (template_id=6): 部门经理审批
-INSERT INTO wf_node_template (template_id, node_order, approver_type, approver_id, condition_type, condition_config, node_name) VALUES
-(6, 1, 'DEPT_MANAGER', NULL, 'NONE', '{}', '部门经理审批');
+-- 加班审批节点 (template_id=6, 同请假矩阵)
+INSERT INTO wf_node_template (template_id, branch_no, node_order, approver_type, approver_id, condition_type, condition_config, node_level, node_name) VALUES
+(6, 1, 1, 'DEPT_TOP', NULL, 'APPLICANT_LEVEL', '{"max":60}', 60, '部门最高管审批'),
+(6, 1, 2, 'ROLE', 14, 'NONE', '{}', 30, '人事专员审批');
+INSERT INTO wf_node_template (template_id, branch_no, node_order, approver_type, approver_id, condition_type, condition_config, node_level, node_name) VALUES
+(6, 2, 1, 'ROLE', 13, 'APPLICANT_LEVEL', '{"min":60,"max":80}', 80, '人事高管审批'),
+(6, 2, 2, 'ROLE', 2, 'NONE', '{}', 100, '总经理审批');
+INSERT INTO wf_node_template (template_id, branch_no, node_order, approver_type, approver_id, condition_type, condition_config, node_level, node_name) VALUES
+(6, 3, 1, 'ROLE', 2, 'APPLICANT_LEVEL', '{"min":80}', 100, '总经理审批');
+
+-- 人事账号操作审批节点 (template_id=7, 按申请人层级分支)
+-- 分支1 人事专员 level<80: 人事高管审批
+INSERT INTO wf_node_template (template_id, branch_no, node_order, approver_type, approver_id, condition_type, condition_config, node_level, node_name) VALUES
+(7, 1, 1, 'ROLE', 13, 'APPLICANT_LEVEL', '{"max":80}', 80, '人事高管审批');
+-- 分支2 人事高管及以上 level≥80: 总经理审批
+INSERT INTO wf_node_template (template_id, branch_no, node_order, approver_type, approver_id, condition_type, condition_config, node_level, node_name) VALUES
+(7, 2, 1, 'ROLE', 2, 'APPLICANT_LEVEL', '{"min":80}', 100, '总经理审批');
 
 -- ============================================================
 -- 审批流程实例
@@ -529,10 +585,14 @@ INSERT INTO wf_node_template (template_id, node_order, approver_type, approver_i
 CREATE TABLE wf_instance (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     template_id BIGINT NOT NULL COMMENT '模板ID',
+    branch_no INT DEFAULT 1 COMMENT '锁定的分支编号（启动时按业务指标匹配）',
     business_type VARCHAR(50) NOT NULL COMMENT '业务类型',
     business_id BIGINT NOT NULL COMMENT '业务单据ID',
+    applicant_id BIGINT COMMENT '发起人用户ID',
+    delegate_user_id BIGINT COMMENT '当前节点委托审批人ID',
+    delegate_node_order INT COMMENT '委托生效的节点顺序（推进后清空）',
     current_node_order INT DEFAULT 1 COMMENT '当前审批节点顺序',
-    status VARCHAR(20) DEFAULT 'pending' COMMENT '状态 pending/approved/rejected/recalled',
+    status VARCHAR(20) DEFAULT 'pending' COMMENT '状态 pending/approved/rejected/cancelled',
     approval_time DATETIME COMMENT '审批完成时间',
     result VARCHAR(20) COMMENT '审批结果',
     create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -553,7 +613,7 @@ CREATE TABLE wf_record (
     instance_id BIGINT NOT NULL COMMENT '流程实例ID',
     node_order INT NOT NULL COMMENT '审批节点顺序',
     approver_id BIGINT NOT NULL COMMENT '审批人ID',
-    approver_action VARCHAR(20) NOT NULL COMMENT '操作 APPROVE/REJECT/PUSH_UP/DELEGATE',
+    approver_action VARCHAR(20) NOT NULL COMMENT '操作 APPROVE/REJECT/PUSH_UP/DELEGATE/SKIP(自审自动跳过)',
     comment VARCHAR(500) DEFAULT '' COMMENT '审批意见',
     action_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '操作时间',
     create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -642,6 +702,29 @@ CREATE TABLE att_schedule (
 
 INSERT INTO att_schedule (work_start_time, work_end_time, flex_enabled) VALUES
 ('09:00:00', '18:00:00', 0);
+
+-- ============================================================
+-- 人事账号操作单（注册/启用/禁用/删除，审批通过后自动生效）
+-- ============================================================
+CREATE TABLE hr_account_op (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    op_no VARCHAR(50) NOT NULL COMMENT '操作单号',
+    op_type VARCHAR(20) NOT NULL COMMENT 'register/enable/disable/delete',
+    target_user_id BIGINT COMMENT '目标用户ID（启用/禁用/删除）',
+    payload TEXT COMMENT '注册信息JSON（username/realName/deptId/phone/email）',
+    applicant_id BIGINT NOT NULL COMMENT '申请人用户ID',
+    approval_status INT DEFAULT 0 COMMENT '审批状态 0待审 1通过 2驳回',
+    executed TINYINT DEFAULT 0 COMMENT '执行状态 0未执行 1已执行 -1执行失败',
+    exec_message VARCHAR(500) DEFAULT '' COMMENT '执行结果说明',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    create_by BIGINT,
+    update_by BIGINT,
+    deleted TINYINT DEFAULT 0,
+    UNIQUE KEY uk_op_no (op_no),
+    INDEX idx_status (approval_status),
+    INDEX idx_applicant (applicant_id)
+) COMMENT '人事账号操作单表';
 
 -- ============================================================
 -- 权限授予（三账户模型）

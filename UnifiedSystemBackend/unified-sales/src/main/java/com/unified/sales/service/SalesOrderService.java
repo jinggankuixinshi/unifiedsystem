@@ -29,7 +29,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Service
@@ -54,17 +56,24 @@ public class SalesOrderService extends ServiceImpl<SalSalesOrderMapper, SalSales
 
         BigDecimal total = BigDecimal.ZERO;
         int maxAnomalyLevel = 0;
+        BigDecimal worstRatio = null;
 
         for (SalSalesOrderItem item : items) {
             BigDecimal avgPrice = getWeightedAvgPrice(item.getProductId());
             if (avgPrice.compareTo(BigDecimal.ZERO) > 0) {
-                BigDecimal deviation = BigDecimal.ONE.subtract(item.getUnitPrice().divide(avgPrice, 4, RoundingMode.HALF_UP));
+                BigDecimal ratio = item.getUnitPrice().divide(avgPrice, 4, RoundingMode.HALF_UP);
+                BigDecimal deviation = BigDecimal.ONE.subtract(ratio);
                 item.setPriceDeviation(deviation);
                 int level = detectAnomalyLevel(deviation);
                 if (level > maxAnomalyLevel) maxAnomalyLevel = level;
+                if (worstRatio == null || ratio.compareTo(worstRatio) < 0) worstRatio = ratio;
             }
             item.setAmount(item.getQuantity().multiply(item.getUnitPrice()).setScale(2, RoundingMode.HALF_UP));
             total = total.add(item.getAmount());
+        }
+
+        if (maxAnomalyLevel >= 2 && (order.getLowPriceReason() == null || order.getLowPriceReason().isBlank())) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST.getCode(), "中度及以上价格异常必须填写低价特批理由");
         }
 
         order.setTotalAmount(total);
@@ -77,8 +86,10 @@ public class SalesOrderService extends ServiceImpl<SalSalesOrderMapper, SalSales
             itemMapper.insert(item);
         }
 
-        workflowEngine.startWorkflow(WorkflowConstants.BusinessType.SALES_ORDER.getCode(), order.getId());
-        log.info("销售报单已创建: orderNo={}, total={}, anomalyLevel={}", order.getOrderNo(), total, maxAnomalyLevel);
+        Map<String, Object> metrics = new HashMap<>();
+        metrics.put("ratio", worstRatio == null ? 1.0 : worstRatio.doubleValue());
+        workflowEngine.startWorkflow(WorkflowConstants.BusinessType.SALES_ORDER.getCode(), order.getId(), order.getSalespersonId(), metrics);
+        log.info("销售报单已创建: orderNo={}, total={}, anomalyLevel={}, worstRatio={}", order.getOrderNo(), total, maxAnomalyLevel, worstRatio);
         return order;
     }
 

@@ -69,7 +69,8 @@
           <a-input v-model:value="formState.deptCode" />
         </a-form-item>
         <a-form-item label="负责人">
-          <a-input v-model:value="formState.leader" />
+          <a-select v-model:value="formState.leaderId" :options="userOptions" allow-clear show-search
+            :filter-option="filterUser" placeholder="选择部门负责人（部门经理审批人）" style="width:100%" />
         </a-form-item>
         <a-form-item label="电话">
           <a-input v-model:value="formState.phone" />
@@ -114,7 +115,12 @@ const formRef = ref()
 const submitting = ref(false)
 const statusChecked = ref(true)
 
-const formState = reactive({ parentId: null as number | null, deptName: '', deptCode: '', leader: '', phone: '' })
+const userOptions = ref<any[]>([])
+
+const formState = reactive({
+  parentId: null as number | null, deptName: '', deptCode: '',
+  leader: '', leaderId: null as number | null, phone: ''
+})
 const rules = {
   deptName: [{ required: true, message: '请输入部门名称' }],
   deptCode: [{ required: true, message: '请输入部门编码' }]
@@ -221,7 +227,8 @@ function openCreate(parent: any) {
   isEdit.value = false
   formState.parentId = parent?.id || null
   formState.deptName = ''; formState.deptCode = ''; formState.leader = ''
-  formState.phone = ''; statusChecked.value = true
+  formState.leaderId = null; formState.phone = ''
+  statusChecked.value = true
   modalVisible.value = true
 }
 
@@ -229,8 +236,23 @@ function openEdit(r: any) {
   isEdit.value = true; editId.value = r.id
   formState.parentId = r.parentId || null; formState.deptName = r.deptName
   formState.deptCode = r.deptCode; formState.leader = r.leader || ''
-  formState.phone = r.phone || ''
+  formState.leaderId = r.leaderId || null; formState.phone = r.phone || ''
   statusChecked.value = r.status === 1; modalVisible.value = true
+}
+
+async function fetchUsers() {
+  try {
+    const res = await request.get('/system/users', { params: { pageNum: 1, pageSize: 200 } }) as any
+    userOptions.value = (res.data?.records || []).map((u: any) => ({
+      label: `${u.realName || u.username}（${u.username}）`,
+      value: u.id,
+      realName: u.realName || u.username
+    }))
+  } catch { }
+}
+
+function filterUser(input: string, option: any) {
+  return String(option.label).toLowerCase().includes(input.toLowerCase())
 }
 
 async function handleSubmit() {
@@ -238,7 +260,8 @@ async function handleSubmit() {
   try { await formRef.value?.validate() } catch { return }
   submitting.value = true
   try {
-    const payload = { ...formState, status: statusChecked.value ? 1 : 0 }
+    const selected = userOptions.value.find((u: any) => u.value === formState.leaderId)
+    const payload = { ...formState, leader: selected?.realName || formState.leader, status: statusChecked.value ? 1 : 0 }
     if (isEdit.value) {
       await request.put(`/system/departments/${editId.value}`, payload); message.success('更新成功')
     } else {
@@ -254,6 +277,7 @@ async function handleDelete(id: number) {
 
 onMounted(async () => {
   await fetchTree()
+  fetchUsers()
   await nextTick()
   setupDrag()
 })

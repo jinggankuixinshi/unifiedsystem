@@ -7,6 +7,7 @@ import org.springframework.scheduling.annotation.EnableAsync;
 
 @SpringBootApplication(scanBasePackages = "com.unified")
 @MapperScan({"com.unified.system.mapper", "com.unified.common.workflow.mapper",
+        "com.unified.common.sequence",
         "com.unified.production.mapper", "com.unified.logistics.mapper",
         "com.unified.sales.mapper", "com.unified.finance.mapper"})
 @EnableAsync

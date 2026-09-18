@@ -328,3 +328,81 @@ UPDATE sys_user SET password='$2a$10$GEP6wVDdrnbZx47tCkzQFujcjmhwS2i2yltu0ouG9J0
 | 备查 | 本地 Redis 5.0.14 无 ACL（文档按 Redis 7 三账户设计）；当前运行链路未用 Redis，不受影响 | 启用锁/序列号时再适配 |
 
 **下一步：** 进入 Phase 1（审批闭环：工作流条件分支 + 审批人解析 + ApprovalCallback 回写 + 站内通知；报销明细透传、销售订单特批理由、考勤接工作流）。
+
+---
+
+# Phase 1 执行记录（审批闭环，已编码完成，待联调验收）
+
+## 十一、Phase 1 交付清单
+
+### 数据模型（`docs/sql/06_phase1_upgrade.sql` 存量库增量 + `01/04` 主脚本同步）
+| 变更 | 说明 |
+|---|---|
+| `wf_node_template.branch_no` | 分支归属字段，6 个模板种子全部重写（采购4链/销售4链/调拨3链/报销3链/请假1/加班1） |
+| `wf_instance.branch_no / applicant_id / delegate_user_id / delegate_node_order` | 实例锁定分支、发起人（待办过滤）、委托状态 |
+| `sys_department.leader_id` | 部门负责人用户ID（DEPT_MANAGER 解析），种子指向 prodmanager/logimanager/salesmanager/finmanager |
+| `sal_sales_order.low_price_reason` | 低价特批理由（中度及以上异常强制必填） |
+
+### 引擎（`unified-common`）
+- `WorkflowEngine` 重写：启动时按 metrics（amount/ratio/type）匹配分支并锁定节点链；`PUSH_UP`=直达分支终审；委托/撤销；条件更新防并发；事件发布
+- 条件匹配：`{"min":..,"max":..,"types":[..]}`（min 含 max 不含；types 支持调拨类型分支）
+- 新增 `WorkflowApproverResolver` 接口（system 实现：ROLE/SPECIFIC_USER/DEPT_MANAGER/admin 兜底）、`WorkflowEvent` 事件
+- `SequenceGenerator` 改 `sys_sequence` 表原子序列（静态 API 不变，重启/多实例不重号）
+
+### 回写与通知
+- 审批结果监听（AFTER_COMMIT + @DS）回写：采购(production)/调拨(logistics)/报单(sales)/报销(finance)/请假加班(system) 的 `approvalStatus`
+- `WorkflowNotificationListener`：待办提醒（当前节点审批人）、结果通知（申请人），落站内信 + WebSocket
+
+### 业务配套与前端
+- 创建单据传指标：采购(amount)/报单(worstRatio)/调拨(amount+type)/报销(amount)
+- 报销明细透传（`ExpenseCreateDTO`）；报销列表 status 过滤
+- 销售报单低价理由字段 + 后端强制校验；考勤请假/加班接入工作流
+- 前端审批台：待我审批/我的已办/我的申请 + 上推/委托/撤销 + 审批时间线；部门负责人改用户选择
+
+### 验收动作（必需）
+1. 执行增量 SQL：`mysql --default-character-set=utf8mb4 -u unified_dev -p < docs/sql/06_phase1_upgrade.sql`
+2. 重启后端（IDEA 重新 Run）
+3. 逐档实测：采购 <5000 / 5000-50000 / >200000；报销 <5000 / >20000；调拨常规+特殊；请假/加班；验证：分支正确、approvalStatus 回写、待办按人可见、站内信到达、重启不重号
+
+---
+
+# Phase 1.5 执行记录（角色等级 + 人事审批，已编码完成，待联调验收）
+
+## 十二、Phase 1.5 交付清单
+
+### 数据模型（`docs/sql/07_phase15_upgrade.sql` 存量库增量 + `01` 主脚本同步）
+| 变更 | 说明 |
+|---|---|
+| `sys_role.level` | 等级：总经理100 / 系统管理员90 / 人事高管80 / 部门高管60 / 主管40(预留) / 专员30 / 员工20 |
+| 人事建制 | 人事部（dept 6）、hr_manager(80)、hr_staff(30)、hrmanager/hrstaff 用户（密码=账号+123）、资源授权 |
+| `wf_node_template.node_level` | 节点审批层级（上推判定）；并加唯一索引 (template_id, branch_no, node_order) |
+| 请假/加班模板重写 | 3 分支：普通(<60)→部门最高管+人事专员；部门高管[60,80)→人事高管+总经理；≥80→总经理 |
+| 模板 7 `hr_account_op` | 人事账号操作审批（人事专员→人事高管；人事高管→总经理） |
+| 新表 `hr_account_op` | 操作单：op_type(register/enable/disable/delete)、payload、approval_status、executed |
+
+### 引擎扩展（common，全部 SPI 化，符合"新增业务不改引擎"目标）
+- **条件评估 SPI**：`WorkflowConditionEvaluator` + 内置 5 个评估器（NONE/AMOUNT_RANGE/PERCENTAGE/TYPE/APPLICANT_LEVEL），新增维度=业务模块加 Bean
+- **审批人策略 SPI**：`WorkflowApproverStrategy` + 实现（ROLE/SPECIFIC_USER/DEPT_MANAGER/**DEPT_TOP 部门最高管**/**ROLE_LEVEL_UP 等级逐级上推**）
+- **自审自动跳过**：当前节点唯一审批人=申请人时逐节点跳过（记录 wf_record=skip），链尾跳过则自动通过
+- **上推改按等级**：沿链找"节点层级 > 当前节点层级"的第一个节点；无 node_level 时按审批人解析兜底
+- **通知名称 DB 回退**：通知/告警名称优先模板名（wf_template.template_name），新增业务无需改通知代码
+- **空审批人告警**：节点解析不到审批人 → 记录 ERROR + 通知 admin 兜底
+
+### 人事账号操作业务
+- `POST /api/hr/account-ops`：admin 直接执行；hr_manager/hr_staff 提交审批单（自动 startWorkflow）
+- 审批通过 → `HrAccountOpApprovalListener` 自动执行（注册=创建账号/初始密码账号+123；启用/禁用/删除=改用户状态或逻辑删除），失败标记 executed=-1
+- 前端：用户管理页按角色分流（admin 直管；hr 显示"账号操作"弹窗提交）；角色管理加"等级"字段；user-info 返回角色
+
+### SQL 脚本规整（2026-09-18）
+- `01_unified_system_db.sql` 已升级为**全量初始化脚本 v1.2**（含 06/07 增量全部内容，附版本头与执行说明），新环境执行 `00 -> 01->05` 即可
+- `06/07` 增量脚本保留，仅用于旧库原地升级（头部已注明"内容已合入全量脚本"）
+- 一致性校验：01 与 07 的 45 条节点种子逐行一致；全部脚本 UTF-8 无 BOM
+
+### 验收动作（必需）
+1. 执行增量 SQL：`mysql --default-character-set=utf8mb4 -u unified_dev -p < docs/sql/07_phase15_upgrade.sql`
+2. 重启后端（IDEA 重新 Run）
+3. 实测：
+   - 账号流：hrstaff/hrstaff123 提交"注册" → hrmanager 审批通过 → 新账号可登录（账号+123）
+   - 请假矩阵：prodworker 请假 → prodmanager → hrstaff；prodmanager 请假 → hrmanager → boss
+   - 自审跳过：boss 提交请假 → 自动通过（记录 skip）
+   - 上推：报销链中财务专员上推 → 财务经理（按等级推进而非直达终态）

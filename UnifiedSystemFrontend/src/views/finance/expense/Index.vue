@@ -91,7 +91,8 @@ function addExpenseItem() { expenseItems.value.push({ itemName: '', amount: 0 })
 async function fetchData() {
   loading.value = true
   try {
-    const res = await request.get('/finance/expenses', { params: { pageNum: current.value, pageSize: pageSize.value } }) as any
+    const status = activeTab.value === 'all' ? undefined : Number(activeTab.value)
+    const res = await request.get('/finance/expenses', { params: { pageNum: current.value, pageSize: pageSize.value, status } }) as any
     dataSource.value = res.data?.records || []
     total.value = res.data?.total || 0
   } catch { } finally { loading.value = false }
@@ -107,10 +108,12 @@ async function handleSubmit() {
   }
   submitting.value = true
   try {
+    const totalAmount = expenseItems.value.reduce((sum, i) => sum + Number(i.amount || 0), 0)
     await request.post('/finance/expenses', {
-      expenseType: expenseType.value, remark: remark.value
+      expense: { expenseType: expenseType.value, remark: remark.value, totalAmount },
+      items: expenseItems.value
     })
-    message.success('提交成功')
+    message.success('提交成功，已进入审批流程')
     modalVisible.value = false; fetchData()
   } catch { } finally { submitting.value = false }
 }

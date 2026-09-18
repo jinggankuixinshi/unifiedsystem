@@ -13,8 +13,12 @@ import java.time.LocalDateTime;
 public class WfInstance extends BaseEntity {
 
     private Long templateId;
+    private Integer branchNo;
     private String businessType;
     private Long businessId;
+    private Long applicantId;
+    private Long delegateUserId;
+    private Integer delegateNodeOrder;
     private Integer currentNodeOrder;
     private String status;
     private LocalDateTime approvalTime;

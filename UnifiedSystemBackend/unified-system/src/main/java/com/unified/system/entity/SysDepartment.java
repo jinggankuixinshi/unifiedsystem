@@ -19,6 +19,7 @@ public class SysDepartment extends BaseEntity {
     private String ancestors;
     private Integer sortOrder;
     private String leader;
+    private Long leaderId;
     private String phone;
     private Integer status;
 

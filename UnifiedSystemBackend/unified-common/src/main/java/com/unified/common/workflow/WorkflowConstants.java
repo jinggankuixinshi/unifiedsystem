@@ -44,7 +44,8 @@ public interface WorkflowConstants {
     enum ConditionType {
         NONE("无条件"),
         AMOUNT_RANGE("金额区间"),
-        PERCENTAGE("比例阈值");
+        PERCENTAGE("比例阈值"),
+        TYPE("类型匹配");
 
         private final String name;
 
@@ -89,8 +90,8 @@ public interface WorkflowConstants {
     @NoArgsConstructor
     @AllArgsConstructor
     class ConditionConfig {
-        private Double minAmount;
-        private Double maxAmount;
-        private Double percentage;
+        private Double min;
+        private Double max;
+        private java.util.List<String> types;
     }
 }

@@ -22,7 +22,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 调拨管理服务
@@ -60,7 +62,11 @@ public class TransferService extends ServiceImpl<LogTransferMapper, LogTransfer>
             itemMapper.insert(item);
         }
 
-        workflowEngine.startWorkflow(WorkflowConstants.BusinessType.TRANSFER.getCode(), transfer.getId());
+        Map<String, Object> metrics = new HashMap<>();
+        metrics.put("amount", totalValue);
+        metrics.put("type", transfer.getType());
+        Long applicantId = UserContext.get() == null ? null : UserContext.get().getUserId();
+        workflowEngine.startWorkflow(WorkflowConstants.BusinessType.TRANSFER.getCode(), transfer.getId(), applicantId, metrics);
         log.info("调拨单已创建: transferNo={}, type={}, totalValue={}", transfer.getTransferNo(), transfer.getType(), totalValue);
         return transfer;
     }
