@@ -398,6 +398,26 @@ UPDATE sys_user SET password='$2a$10$GEP6wVDdrnbZx47tCkzQFujcjmhwS2i2yltu0ouG9J0
 - `06/07` 增量脚本保留，仅用于旧库原地升级（头部已注明"内容已合入全量脚本"）
 - 一致性校验：01 与 07 的 45 条节点种子逐行一致；全部脚本 UTF-8 无 BOM
 
+### 代码内 SQL 清零（2026-09-18）
+- 原则：所有 SQL 一律放 `resources/mapper/*.xml`，代码只用参数化方法/Wrapper，禁止字符串拼接 SQL
+- 改造：
+  - `@Select` 注解 SQL → `unified-common/src/main/resources/mapper/SysSequenceMapper.xml`（序列行锁查询）
+  - `setSql("quantity = quantity - " + deduct)` → `unified-production/src/main/resources/mapper/ProdWarehouseMapper.xml#deductStock`（参数化原子扣减）
+- 扫描结果：`@Select/@Update/@Insert/.setSql/.last` 全项目为 0；业务查询统一走 MyBatis-Plus 参数化 Wrapper
+
+### 依赖替代自研 — Phase 1.6 批次一（2026-09-18）
+| 项 | 依赖 | 替代/收益 | 验证 |
+|---|---|---|---|
+| API 文档 | springdoc-openapi 2.6.0 | 在线文档 `/swagger-ui.html`（SecurityConfig 放行） | 编译通过 |
+| 健康/指标 | spring-boot-starter-actuator | `/actuator/health·info·metrics` | 编译通过 |
+| 对象映射 | MapStruct 1.6.3（含 lombok-binding 注解处理器） | 试点 `SysUserConverter`，替换 `BeanUtils.copyProperties`/手写 toVO，编译期生成杜绝字段错配 | 编译通过（生成 Impl） |
+| 加解密 | Spring Security Crypto `Encryptors.delux`（AES-256/GCM） | 重写 `AesUtil`，删除手写 JCE 代码；手机号脱敏改用 Hutool `DesensitizedUtil` | 编译通过 |
+| 单元测试 | spring-boot-starter-test（parent 全局引入） | 条件评估器单测 8 个（min 含/max 不含/类型过滤/层级分支） | **8/8 通过** |
+
+**本批未执行（原因）**：
+- Flyway：5 库迁移格式需重写（去 DROP/USE/GRANT）+ 存量库 baseline，风险高，单独立项
+- mzt-biz-log 审计 / MP 数据权限 / EasyExcel 导出 / @Scheduled / Redisson：分别在 Phase 2/3 有业务落点后再引入
+
 ### 验收动作（必需）
 1. 执行增量 SQL：`mysql --default-character-set=utf8mb4 -u unified_dev -p < docs/sql/07_phase15_upgrade.sql`
 2. 重启后端（IDEA 重新 Run）

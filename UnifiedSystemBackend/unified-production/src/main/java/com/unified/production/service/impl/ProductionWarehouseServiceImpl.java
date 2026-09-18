@@ -3,7 +3,6 @@ package com.unified.production.service.impl;
 import com.baomidou.dynamic.datasource.annotation.DS;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.unified.common.exception.BusinessException;
 import com.unified.common.exception.ErrorCode;
@@ -121,10 +120,7 @@ public class ProductionWarehouseServiceImpl extends ServiceImpl<ProdWarehouseMap
                 if (remaining.compareTo(BigDecimal.ZERO) <= 0) break;
 
                 BigDecimal deduct = remaining.min(stock.getQuantity());
-                int updated = baseMapper.update(null, new LambdaUpdateWrapper<ProdWarehouse>()
-                        .setSql("quantity = quantity - " + deduct)
-                        .eq(ProdWarehouse::getId, stock.getId())
-                        .ge(ProdWarehouse::getQuantity, deduct));
+                int updated = baseMapper.deductStock(stock.getId(), deduct);
                 if (updated == 0) {
                     continue;
                 }

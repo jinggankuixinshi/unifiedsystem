@@ -1,48 +1,26 @@
 package com.unified.common.util;
 
-import javax.crypto.Cipher;
-import javax.crypto.spec.GCMParameterSpec;
-import javax.crypto.spec.SecretKeySpec;
-import java.nio.charset.StandardCharsets;
-import java.security.SecureRandom;
-import java.util.Base64;
+import org.springframework.security.crypto.encrypt.Encryptors;
+import org.springframework.security.crypto.encrypt.TextEncryptor;
 
+/**
+ * AES-256/GCM 加解密（基于 Spring Security Crypto，随机 IV 随密文携带，避免自维护 JCE 代码）
+ * salt 为十六进制字符串，仅参与密钥派生（防彩虹表）
+ */
 public class AesUtil {
 
-    private static final String ALGORITHM = "AES/GCM/NoPadding";
-    private static final int GCM_TAG_LENGTH = 128;
-    private static final int GCM_IV_LENGTH = 12;
+    private static final String SALT = "6b1f2e3a4c5d6e7f";
 
-    public static String encrypt(String plainText, String password) throws Exception {
-        byte[] iv = new byte[GCM_IV_LENGTH];
-        new SecureRandom().nextBytes(iv);
-
-        SecretKeySpec keySpec = new SecretKeySpec(password.getBytes(StandardCharsets.UTF_8), "AES");
-        GCMParameterSpec gcmSpec = new GCMParameterSpec(GCM_TAG_LENGTH, iv);
-        Cipher cipher = Cipher.getInstance(ALGORITHM);
-        cipher.init(Cipher.ENCRYPT_MODE, keySpec, gcmSpec);
-
-        byte[] cipherText = cipher.doFinal(plainText.getBytes(StandardCharsets.UTF_8));
-        byte[] combined = new byte[GCM_IV_LENGTH + cipherText.length];
-        System.arraycopy(iv, 0, combined, 0, GCM_IV_LENGTH);
-        System.arraycopy(cipherText, 0, combined, GCM_IV_LENGTH, cipherText.length);
-
-        return Base64.getEncoder().encodeToString(combined);
+    public static String encrypt(String plainText, String password) {
+        return encryptor(password).encrypt(plainText);
     }
 
-    public static String decrypt(String encrypted, String password) throws Exception {
-        byte[] combined = Base64.getDecoder().decode(encrypted);
+    public static String decrypt(String encrypted, String password) {
+        return encryptor(password).decrypt(encrypted);
+    }
 
-        byte[] iv = new byte[GCM_IV_LENGTH];
-        byte[] cipherText = new byte[combined.length - GCM_IV_LENGTH];
-        System.arraycopy(combined, 0, iv, 0, GCM_IV_LENGTH);
-        System.arraycopy(combined, GCM_IV_LENGTH, cipherText, 0, cipherText.length);
-
-        SecretKeySpec keySpec = new SecretKeySpec(password.getBytes(StandardCharsets.UTF_8), "AES");
-        GCMParameterSpec gcmSpec = new GCMParameterSpec(GCM_TAG_LENGTH, iv);
-        Cipher cipher = Cipher.getInstance(ALGORITHM);
-        cipher.init(Cipher.DECRYPT_MODE, keySpec, gcmSpec);
-
-        return new String(cipher.doFinal(cipherText), StandardCharsets.UTF_8);
+    private static TextEncryptor encryptor(String password) {
+        // delux：AES-256/GCM，随机 IV 随密文携带
+        return Encryptors.delux(password, SALT);
     }
 }

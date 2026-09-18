@@ -1,5 +1,6 @@
 package com.unified.system.service.impl;
 
+import cn.hutool.core.util.DesensitizedUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -9,6 +10,7 @@ import com.unified.common.exception.BusinessException;
 import com.unified.common.exception.ErrorCode;
 import com.unified.common.security.JwtUtil;
 import com.unified.common.security.TokenManager;
+import com.unified.system.converter.SysUserConverter;
 import com.unified.system.dto.SysUserDTO;
 import com.unified.system.entity.SysDepartment;
 import com.unified.system.entity.SysUser;
@@ -19,7 +21,6 @@ import com.unified.system.mapper.SysUserRoleMapper;
 import com.unified.system.service.SysUserService;
 import com.unified.system.vo.SysUserVO;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.BeanUtils;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,6 +40,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
     private final PasswordEncoder passwordEncoder;
     private final SysUserRoleMapper userRoleMapper;
     private final SysDepartmentMapper departmentMapper;
+    private final SysUserConverter userConverter;
 
     @Override
     public Map<String, Object> login(String username, String password) {
@@ -78,8 +80,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
         if (exist != null) {
             throw new BusinessException(ErrorCode.USERNAME_EXISTS);
         }
-        SysUser entity = new SysUser();
-        BeanUtils.copyProperties(dto, entity);
+        SysUser entity = userConverter.toEntity(dto);
         entity.setPassword(passwordEncoder.encode(dto.getPassword()));
         if (entity.getStatus() == null) {
             entity.setStatus(1);
@@ -101,7 +102,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
                 throw new BusinessException(ErrorCode.USERNAME_EXISTS);
             }
         }
-        BeanUtils.copyProperties(dto, entity, "password");
+        userConverter.updateEntity(dto, entity);
         if (StrUtil.isNotBlank(dto.getPassword())) {
             entity.setPassword(passwordEncoder.encode(dto.getPassword()));
         }
@@ -175,8 +176,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
     }
 
     private SysUserVO toVO(SysUser entity) {
-        SysUserVO vo = new SysUserVO();
-        BeanUtils.copyProperties(entity, vo);
+        SysUserVO vo = userConverter.toVO(entity);
         if (StrUtil.isNotBlank(entity.getPhone())) {
             vo.setPhone(maskPhone(entity.getPhone()));
         }
@@ -191,7 +191,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
 
     private String maskPhone(String phone) {
         if (phone.length() == 11) {
-            return phone.substring(0, 3) + "****" + phone.substring(7);
+            return DesensitizedUtil.mobilePhone(phone);
         }
         return phone.substring(0, 3) + "****" + phone.substring(phone.length() - 4);
     }

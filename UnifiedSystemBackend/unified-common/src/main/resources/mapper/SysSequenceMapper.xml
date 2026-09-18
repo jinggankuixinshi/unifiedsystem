@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.unified.common.sequence.SysSequenceMapper">
+
+    <!-- 行锁获取当日序列（前缀+日期），并发下由数据库行锁保证原子递增 -->
+    <select id="selectForUpdate" resultType="com.unified.common.sequence.SysSequence">
+        SELECT *
+        FROM sys_sequence
+        WHERE prefix = #{prefix}
+          AND update_date = #{date}
+          AND deleted = 0
+        FOR UPDATE
+    </select>
+
+</mapper>

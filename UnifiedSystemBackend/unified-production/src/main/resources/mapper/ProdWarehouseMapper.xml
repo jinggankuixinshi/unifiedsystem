@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.unified.production.mapper.ProdWarehouseMapper">
+
+    <!-- 原子扣减库存：数量足够才扣减；返回受影响行数（0 = 库存不足，由调用方处理） -->
+    <update id="deductStock">
+        UPDATE prod_warehouse
+        SET quantity = quantity - #{quantity}
+        WHERE id = #{id}
+          AND quantity &gt;= #{quantity}
+    </update>
+
+</mapper>
