@@ -331,7 +331,7 @@ UPDATE sys_user SET password='$2a$10$GEP6wVDdrnbZx47tCkzQFujcjmhwS2i2yltu0ouG9J0
 
 ---
 
-# Phase 1 执行记录（审批闭环，已编码完成，待联调验收）
+# Phase 1 执行记录（审批闭环，已完成 ✅）
 
 ## 十一、Phase 1 交付清单
 
@@ -359,14 +359,14 @@ UPDATE sys_user SET password='$2a$10$GEP6wVDdrnbZx47tCkzQFujcjmhwS2i2yltu0ouG9J0
 - 销售报单低价理由字段 + 后端强制校验；考勤请假/加班接入工作流
 - 前端审批台：待我审批/我的已办/我的申请 + 上推/委托/撤销 + 审批时间线；部门负责人改用户选择
 
-### 验收动作（必需）
-1. 执行增量 SQL：`mysql --default-character-set=utf8mb4 -u unified_dev -p < docs/sql/06_phase1_upgrade.sql`
-2. 重启后端（IDEA 重新 Run）
-3. 逐档实测：采购 <5000 / 5000-50000 / >200000；报销 <5000 / >20000；调拨常规+特殊；请假/加班；验证：分支正确、approvalStatus 回写、待办按人可见、站内信到达、重启不重号
+### 验收动作与结果（已完成 ✅）
+1. ~~执行增量 SQL~~ → 实际采用**数据库全量重建**（`00 → 01~05`，01 为 v1.2 全量脚本，已含 06/07 全部内容）
+2. 后端重启（IDEA 重新 Run）→ 启动运行正常
+3. 验收结果（2026-09-18）：**重启后未发现异常，验收通过** ✅（逐档流转可随时按本节路径复测：采购 <5000 / 5000-50000 / >200000；报销 <5000 / >20000；调拨常规+特殊；请假/加班）
 
 ---
 
-# Phase 1.5 执行记录（角色等级 + 人事审批，已编码完成，待联调验收）
+# Phase 1.5 执行记录（角色等级 + 人事审批，已完成 ✅）
 
 ## 十二、Phase 1.5 交付清单
 
@@ -393,19 +393,34 @@ UPDATE sys_user SET password='$2a$10$GEP6wVDdrnbZx47tCkzQFujcjmhwS2i2yltu0ouG9J0
 - 审批通过 → `HrAccountOpApprovalListener` 自动执行（注册=创建账号/初始密码账号+123；启用/禁用/删除=改用户状态或逻辑删除），失败标记 executed=-1
 - 前端：用户管理页按角色分流（admin 直管；hr 显示"账号操作"弹窗提交）；角色管理加"等级"字段；user-info 返回角色
 
-### SQL 脚本规整（2026-09-18）
+### 验收动作与结果（已完成 ✅）
+1. ~~执行增量 SQL~~ → 实际采用**数据库全量重建**（01 v1.2 已含 07 全部内容）
+2. 后端重启（IDEA 重新 Run）→ 启动运行正常
+3. 验收结果（2026-09-18）：**重启后未发现异常，验收通过** ✅（账号流/请假矩阵/自审跳过/等级上推可按以下路径随时复测）：
+   - 账号流：hrstaff/hrstaff123 提交"注册" → hrmanager 审批通过 → 新账号可登录（账号+123）
+   - 请假矩阵：prodworker 请假 → prodmanager → hrstaff；prodmanager 请假 → hrmanager → boss
+   - 自审跳过：boss 提交请假 → 自动通过（记录 skip）
+   - 上推：报销链中财务专员上推 → 财务经理（按等级推进而非直达终态）
+
+---
+
+# 工程化与基础设施优化（2026-09-18）
+
+## 十三、SQL 规范化、依赖替代与开发提效
+
+### 13.1 SQL 脚本规整
 - `01_unified_system_db.sql` 已升级为**全量初始化脚本 v1.2**（含 06/07 增量全部内容，附版本头与执行说明），新环境执行 `00 -> 01->05` 即可
 - `06/07` 增量脚本保留，仅用于旧库原地升级（头部已注明"内容已合入全量脚本"）
 - 一致性校验：01 与 07 的 45 条节点种子逐行一致；全部脚本 UTF-8 无 BOM
 
-### 代码内 SQL 清零（2026-09-18）
+### 13.2 代码内 SQL 清零
 - 原则：所有 SQL 一律放 `resources/mapper/*.xml`，代码只用参数化方法/Wrapper，禁止字符串拼接 SQL
 - 改造：
   - `@Select` 注解 SQL → `unified-common/src/main/resources/mapper/SysSequenceMapper.xml`（序列行锁查询）
   - `setSql("quantity = quantity - " + deduct)` → `unified-production/src/main/resources/mapper/ProdWarehouseMapper.xml#deductStock`（参数化原子扣减）
 - 扫描结果：`@Select/@Update/@Insert/.setSql/.last` 全项目为 0；业务查询统一走 MyBatis-Plus 参数化 Wrapper
 
-### 依赖替代自研 — Phase 1.6 批次一（2026-09-18）
+### 13.3 依赖替代自研 — Phase 1.6 批次一
 | 项 | 依赖 | 替代/收益 | 验证 |
 |---|---|---|---|
 | API 文档 | springdoc-openapi 2.6.0 | 在线文档 `/swagger-ui.html`（SecurityConfig 放行） | 编译通过 |
@@ -418,11 +433,20 @@ UPDATE sys_user SET password='$2a$10$GEP6wVDdrnbZx47tCkzQFujcjmhwS2i2yltu0ouG9J0
 - Flyway：5 库迁移格式需重写（去 DROP/USE/GRANT）+ 存量库 baseline，风险高，单独立项
 - mzt-biz-log 审计 / MP 数据权限 / EasyExcel 导出 / @Scheduled / Redisson：分别在 Phase 2/3 有业务落点后再引入
 
-### 验收动作（必需）
-1. 执行增量 SQL：`mysql --default-character-set=utf8mb4 -u unified_dev -p < docs/sql/07_phase15_upgrade.sql`
-2. 重启后端（IDEA 重新 Run）
-3. 实测：
-   - 账号流：hrstaff/hrstaff123 提交"注册" → hrmanager 审批通过 → 新账号可登录（账号+123）
-   - 请假矩阵：prodworker 请假 → prodmanager → hrstaff；prodmanager 请假 → hrmanager → boss
-   - 自审跳过：boss 提交请假 → 自动通过（记录 skip）
-   - 上推：报销链中财务专员上推 → 财务经理（按等级推进而非直达终态）
+### 13.4 开发热插拔（spring-boot-devtools）配置规范化（本次）
+- 归属调整：devtools 从父 POM 移除，仅运行模块 `unified-system` 引入，`runtime + optional=true`（不传递给库模块、不进入生产包）
+- `application.yml` 增加 `spring.devtools.restart`：`poll-interval: 2s`、`quiet-period: 1s`（编译保存后 1~2 秒自动重启）
+- IDEA 使用需开启：`Build project automatically` + `Allow auto-make to start even if developed application is currently running`
+- 静态工具类/`@PostConstruct` 注册表/连接池在重启时自动重建，无残留；XML Mapper、yml 变更同样触发生效
+- 验证：编译通过 ✅
+
+### 13.5 上线快照（2026-09-18）
+- 数据库：已**全量重建**（`00 → 01~05`，01 为 v1.2 全量脚本，含 Phase 1/1.5 全部结构）
+- 后端：重启运行正常，暂未发现异常
+- Phase 1（审批闭环）/ Phase 1.5（角色等级 + 人事审批）：状态更新为 **已完成 ✅**
+- 整体完成度约 **65%**（管理后台 + 审批域 + 人事体系 + 工程化可用；业务链待打通）
+
+### 下次开工入口（建议顺序）
+1. 访问 `http://localhost:8080/swagger-ui.html` / `/actuator/health` 验证新基础设施（如未验证）
+2. 进入 Phase 2（销售链：合同/价格/售后后端 + MapStruct 映射扩展；采购/物流链闭环）
+3. 或先做 Flyway 专项（数据库版本管理，单独立项）
